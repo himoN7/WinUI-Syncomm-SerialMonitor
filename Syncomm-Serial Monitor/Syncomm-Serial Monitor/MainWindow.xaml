@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Syncomm_Serial_Monitor.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Syncomm_Serial_Monitor"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Tarshid Syncomm Serial Monitor">
+
+    <!-- Apply Mica Backdrop -->
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <NavigationView
+            x:Name="NavView"
+            PaneDisplayMode="LeftCompact"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="True"
+            SelectionFollowsFocus="Enabled"
+            IsPaneToggleButtonVisible="False"
+            OpenPaneLength="250"
+            CompactPaneLength="60"
+            IsBackEnabled="False"
+            PaneTitle="Tarshid Syncomm"
+            AnimatedIcon.State="Press"
+            
+            SelectionChanged="NavView_SelectionChanged"
+            BackRequested="NavView_BackRequested">
+
+            <!-- Custom Header with App Icon and Title -->
+            <NavigationView.HeaderTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                        <Image Source="Assets/AppIcon.png" Width="24" Height="24"/>
+                        <TextBlock Text="Syncomm Serial Monitor" FontWeight="Bold" FontSize="20"/>
+                    </StackPanel>
+                </DataTemplate>
+            </NavigationView.HeaderTemplate>
+
+            <NavigationView.PaneHeader>
+                <Grid Margin="6,5,0,5">
+                   
+                </Grid>
+            </NavigationView.PaneHeader>
+
+            
+            <NavigationView.MenuItems>
+                <NavigationViewItem Icon="Home" Content="Serial Monitor" Tag="SerialMonitorPage" 
+                                  IsSelected="True"/>
+               
+            </NavigationView.MenuItems>
+            
+
+            <Grid>
+                <Frame x:Name="ContentFrame" 
+                       Background="Transparent"
+                       Margin="12"
+                       CornerRadius="8"/>
+                
+                <ProgressRing x:Name="LoadingIndicator" 
+                            IsActive="False"
+                            Width="40" 
+                            Height="40"/>
+            </Grid>
+
+        </NavigationView>
+    </Grid>
+</Window>
