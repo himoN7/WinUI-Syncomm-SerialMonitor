@@ -10,7 +10,7 @@
   <Identity
     Name="93bd7180-ca87-43f3-8d2c-89e0bff4286c"
     Publisher="CN=Hamed"
-    Version="1.0.0.0" />
+    Version="1.0.2.0" />
 
   <mp:PhoneIdentity PhoneProductId="93bd7180-ca87-43f3-8d2c-89e0bff4286c" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

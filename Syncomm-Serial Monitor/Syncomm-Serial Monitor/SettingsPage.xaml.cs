@@ -23,9 +23,16 @@ namespace Syncomm_Serial_Monitor
 
         private void LoadCurrentSettings()
         {
-            if (window?.SystemBackdrop is MicaBackdrop)
+            if (window?.SystemBackdrop is MicaBackdrop micaBackdrop)
             {
-                BackdropStyleComboBox.SelectedIndex = 2; // Mica
+                if (micaBackdrop.Kind == MicaKind.BaseAlt)
+                {
+                    BackdropStyleComboBox.SelectedIndex = 3; // Mica Alt
+                }
+                else
+                {
+                    BackdropStyleComboBox.SelectedIndex = 2; // Mica
+                }
             }
             else if (window?.SystemBackdrop is DesktopAcrylicBackdrop)
             {
@@ -55,7 +62,15 @@ namespace Syncomm_Serial_Monitor
                 case "Mica":
                     window.SystemBackdrop = new MicaBackdrop();
                     break;
+                case "Mica Alt":
+                    var micaAltBackdrop = new MicaBackdrop
+                    {
+                        Kind = MicaKind.BaseAlt
+                    };
+                    window.SystemBackdrop = micaAltBackdrop;
+                    break;
             }
         }
     }
+    
 }

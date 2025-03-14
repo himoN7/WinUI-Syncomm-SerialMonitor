@@ -7,29 +7,38 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
+    
+    
     Title="Tarshid Syncomm Serial Monitor">
+    
+    
 
     <!-- Apply Mica Backdrop -->
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid>
+    <Grid CornerRadius="8" Margin="5,5,5,5">
         <NavigationView
+            Margin="0,0,0,0"
+            CornerRadius="5"
             x:Name="NavView"
-            PaneDisplayMode="LeftCompact"
+            PaneDisplayMode="Left"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
             SelectionFollowsFocus="Enabled"
-            IsPaneToggleButtonVisible="False"
-            OpenPaneLength="250"
-            CompactPaneLength="60"
+            IsPaneToggleButtonVisible="True"
+            OpenPaneLength="180"
+            CompactPaneLength="48"
             IsBackEnabled="False"
             PaneTitle="Tarshid Syncomm"
             AnimatedIcon.State="Press"
-            
             SelectionChanged="NavView_SelectionChanged"
             BackRequested="NavView_BackRequested">
+     
+
+
+
 
             <!-- Custom Header with App Icon and Title -->
             <NavigationView.HeaderTemplate>
@@ -53,13 +62,13 @@
                                   IsSelected="True"/>
                
             </NavigationView.MenuItems>
-            
 
-            <Grid>
+
+            <Grid Margin="0,0,0,0">
                 <Frame x:Name="ContentFrame" 
-                       Background="Transparent"
-                       Margin="12"
-                       CornerRadius="8"/>
+                       Background="{StaticResource CardBackgroundFillColorDefaultBrush}"
+                       
+                       CornerRadius="0"/>
                 
                 <ProgressRing x:Name="LoadingIndicator" 
                             IsActive="False"
@@ -68,5 +77,7 @@
             </Grid>
 
         </NavigationView>
+
+        
     </Grid>
 </Window>

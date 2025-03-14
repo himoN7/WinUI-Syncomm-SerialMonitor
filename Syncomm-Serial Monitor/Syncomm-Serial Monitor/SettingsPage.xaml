@@ -21,6 +21,7 @@
                 <ComboBoxItem Content="None"/>
                 <ComboBoxItem Content="Acrylic"/>
                 <ComboBoxItem Content="Mica"/>
+                <ComboBoxItem Content="Mica Alt"/>
             </ComboBox>
         </StackPanel>
     </Grid>

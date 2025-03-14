@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Xaml.Controls.AnimatedVisuals;
 
 namespace Syncomm_Serial_Monitor
 {
@@ -40,11 +41,20 @@ namespace Syncomm_Serial_Monitor
            
             this.InitializeComponent();
             App.MainWindow = this;
+            
+            if (IsWindows11()) {
+            this.ExtendsContentIntoTitleBar = true;
+               
+
+            }
 
             // Set Mica backdrop if supported
             if (MicaController.IsSupported())
             {
-                this.SystemBackdrop = new MicaBackdrop();
+                this.SystemBackdrop = new MicaBackdrop
+                {
+                    Kind = MicaKind.BaseAlt
+                }; 
             }
 
             // Register navigation events
@@ -53,7 +63,9 @@ namespace Syncomm_Serial_Monitor
             // Navigate to default page
             ContentFrame.Navigate(typeof(SerialMonitorPage));
         }
+   
 
+   
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
         {
 
