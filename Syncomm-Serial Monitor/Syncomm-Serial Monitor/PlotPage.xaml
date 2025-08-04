@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Syncomm_Serial_Monitor.PlotPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Grid Padding="20">
+        <ScrollView VerticalScrollBarVisibility="Visible">
+            <StackPanel Spacing="20" HorizontalAlignment="Stretch">
+                
+                <!-- Plot Configuration -->
+                <Expander HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xE8B8;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="Plot Configuration"/>
+                                <TextBlock Text="Configure chart type, time range, and display options." Style="{StaticResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Spacing="20">
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Chart Type" />
+                            <ComboBox x:Name="PlotTypeSelector"
+                                     SelectedIndex="0"
+                                     Width="200">
+                                <ComboBoxItem Content="Line Chart"/>
+                                <ComboBoxItem Content="Scatter Plot"/>
+                                <ComboBoxItem Content="Bar Chart"/>
+                                <ComboBoxItem Content="Area Chart"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Time Range" />
+                            <ComboBox x:Name="TimeRangeSelector"
+                                     SelectedIndex="0"
+                                     Width="200">
+                                <ComboBoxItem Content="Last 1 Hour"/>
+                                <ComboBoxItem Content="Last 6 Hours"/>
+                                <ComboBoxItem Content="Last 24 Hours"/>
+                                <ComboBoxItem Content="All Data"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Options" />
+                            <CheckBox Content="Show Legend" IsChecked="True" Margin="0,0,0,8"/>
+                            <CheckBox Content="Auto Scale" IsChecked="True" Margin="0,0,0,8"/>
+                            <CheckBox Content="Show Grid" IsChecked="True"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+
+                <!-- Data Visualization -->
+                <Expander HorizontalAlignment="Stretch" IsExpanded="True">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xE8B5;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="Data Visualization"/>
+                                <TextBlock Text="Analyze and visualize serial data with interactive charts." Style="{StaticResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander.Header>
+
+                    <Grid Grid.Column="2" ColumnSpacing="20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" MinWidth="500"/>
+                            <ColumnDefinition Width="*" MinWidth="300"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Plot Area -->
+                        <Border Grid.Column="0"
+                                Background="{ThemeResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Plot Header -->
+                                <Grid Grid.Row="0" Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Data Plot" 
+                                                 Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                        <TextBlock x:Name="PlotStatusText"
+                                                 Text="No data available for plotting"
+                                                 Style="{StaticResource CaptionTextBlockStyle}"
+                                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                    
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <Button x:Name="ClearPlotButton"
+                                                Content="Clear Plot"
+                                                Style="{StaticResource DefaultButtonStyle}"
+                                                Click="ClearPlotButton_Click"
+                                                Margin="0,0,8,0"/>
+                                        <Button x:Name="ExportPlotButton"
+                                                Content="Export"
+                                                Style="{StaticResource DefaultButtonStyle}"
+                                                Click="ExportPlotButton_Click"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Plot Content -->
+                                <Grid Grid.Row="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <!-- Plot Display Area -->
+                                    <Border Grid.Row="0" 
+                                            Background="{ThemeResource CardBackgroundFillColorSecondary}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="12">
+                                        <Canvas x:Name="PlotCanvas"
+                                                Background="Transparent">
+                                            <!-- Plot will be drawn here -->
+                                        </Canvas>
+                                    </Border>
+                                    
+                                    <!-- Plot Controls -->
+                                    <StackPanel Grid.Row="1" 
+                                              Orientation="Horizontal" 
+                                              HorizontalAlignment="Center"
+                                              Spacing="12"
+                                              Margin="0,12,0,0">
+                                        <Button x:Name="ZoomInButton"
+                                                Content="Zoom In"
+                                                Style="{StaticResource DefaultButtonStyle}"
+                                                Click="ZoomInButton_Click"/>
+                                        <Button x:Name="ZoomOutButton"
+                                                Content="Zoom Out"
+                                                Style="{StaticResource DefaultButtonStyle}"
+                                                Click="ZoomOutButton_Click"/>
+                                        <Button x:Name="ResetZoomButton"
+                                                Content="Reset Zoom"
+                                                Style="{StaticResource DefaultButtonStyle}"
+                                                Click="ResetZoomButton_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Control Panel -->
+                        <StackPanel Grid.Column="1" Spacing="12">
+                            <!-- Data Selection -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefault}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Data Selection" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <ComboBox x:Name="DataSeriesSelector"
+                                             Header="Data Series"
+                                             PlaceholderText="Select data series to plot"/>
+                                    <CheckBox x:Name="ShowMultipleSeriesToggle"
+                                             Content="Show Multiple Series"
+                                             IsChecked="False"/>
+                                    <CheckBox x:Name="RealTimeUpdateToggle"
+                                             Content="Real-time Updates"
+                                             IsChecked="True"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Statistics -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefault}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Statistics" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <TextBlock x:Name="DataPointsText" Text="Data Points: 0"/>
+                                    <TextBlock x:Name="MinValueText" Text="Min Value: --"/>
+                                    <TextBlock x:Name="MaxValueText" Text="Max Value: --"/>
+                                    <TextBlock x:Name="AverageValueText" Text="Average: --"/>
+                                    <TextBlock x:Name="UpdateRateText" Text="Update Rate: 0 Hz"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Export Options -->
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefault}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="16">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Export Options" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                                    <ComboBox x:Name="ExportFormatSelector"
+                                             Header="Format"
+                                             SelectedIndex="0">
+                                        <ComboBoxItem Content="PNG Image"/>
+                                        <ComboBoxItem Content="SVG Vector"/>
+                                        <ComboBoxItem Content="CSV Data"/>
+                                        <ComboBoxItem Content="JSON Data"/>
+                                    </ComboBox>
+                                    <Button x:Name="ExportDataButton"
+                                            Content="Export Data"
+                                            Style="{StaticResource DefaultButtonStyle}"
+                                            Click="ExportDataButton_Click"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Expander>
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+</Page> 

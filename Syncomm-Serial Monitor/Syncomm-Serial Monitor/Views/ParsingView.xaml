@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Syncomm_Serial_Monitor.Views.ParsingView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Parsing Configuration -->
+        <Expander Grid.Row="0" Header="Parsing Configuration" IsExpanded="True">
+            <Grid ColumnSpacing="15" RowSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Clock Settings -->
+                <StackPanel Grid.Column="0" Grid.Row="0" Spacing="10">
+                    <TextBlock Text="Clock Settings" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <ToggleSwitch Header="Sync to System Clock" 
+                                  IsOn="{Binding ParsingModel.SyncToSystemClock}"/>
+                    
+                    <ToggleSwitch Header="Use External Clock" 
+                                  IsOn="{Binding ParsingModel.UseExternalClock}"/>
+                    
+                    <TextBox Header="External Clock Label" 
+                             Text="{Binding ParsingModel.ExternalClockLabel, Mode=TwoWay}"
+                             PlaceholderText="Enter external clock label"/>
+                </StackPanel>
+
+                <!-- Time Range Settings -->
+                <StackPanel Grid.Column="1" Grid.Row="0" Spacing="10">
+                    <TextBlock Text="Time Range Settings" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <TimePicker Header="Minimum Time" 
+                                Time="{Binding ParsingModel.MinimumTime, Mode=TwoWay}"/>
+                    
+                    <TimePicker Header="Maximum Time" 
+                                Time="{Binding ParsingModel.MaximumTime, Mode=TwoWay}"/>
+                    
+                    <Button Content="Reset Time Range" 
+                            Style="{StaticResource DefaultButtonStyle}"
+                            Click="ResetTimeRange_Click"/>
+                </StackPanel>
+
+                <!-- Progress and Status -->
+                <StackPanel Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Spacing="10">
+                    <TextBlock Text="Parsing Status" Style="{StaticResource SubtitleTextBlockStyle}"/>
+                    
+                    <ProgressBar Value="{Binding ParsingModel.ParsingProgress}" 
+                                 Maximum="100" 
+                                 Height="20"/>
+                    
+                    <TextBlock Text="{Binding ParsingModel.ParsingProgress, StringFormat='Progress: {0:F1}%'}"
+                               Style="{StaticResource CaptionTextBlockStyle}"/>
+                    
+                    <TextBlock Text="{Binding ParsingModel.GetDataCount, StringFormat='Data Points: {0}'}"
+                               Style="{StaticResource CaptionTextBlockStyle}"/>
+                </StackPanel>
+
+                <!-- Control Buttons -->
+                <StackPanel Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2" 
+                           Orientation="Horizontal" Spacing="10">
+                    <Button Content="Clear Parsed Data" 
+                            Style="{StaticResource DefaultButtonStyle}"
+                            Click="ClearParsedData_Click"/>
+                    
+                    <Button Content="Export Parsed Data" 
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="ExportParsedData_Click"/>
+                </StackPanel>
+            </Grid>
+        </Expander>
+
+        <!-- Parsed Data Display -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Parsed Data" 
+                       Style="{StaticResource SubtitleTextBlockStyle}"
+                       Margin="0,0,0,10"/>
+
+            <ListView Grid.Row="1" 
+                      ItemsSource="{Binding ParsingModel.ParsedDataItems}"
+                      HorizontalAlignment="Stretch">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="100"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" 
+                                       Text="{Binding Index}" 
+                                       FontFamily="Consolas"
+                                       VerticalAlignment="Center"/>
+                            
+                            <TextBlock Grid.Column="1" 
+                                       Text="{Binding Label}" 
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            
+                            <TextBlock Grid.Column="2" 
+                                       Text="{Binding FormattedValue}" 
+                                       FontFamily="Consolas"
+                                       VerticalAlignment="Center"/>
+                            
+                            <TextBlock Grid.Column="3" 
+                                       Text="{Binding FormattedTimeStamp}" 
+                                       FontFamily="Consolas"
+                                       FontSize="10"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+    </Grid>
+</Page> 

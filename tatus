@@ -1,0 +1,10 @@
+[33mad8bfca[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/custom-title-bar[m[33m, [m[1;31morigin/feature/custom-title-bar[m[33m)[m Fix ListView binding syntax - use x:Bind for string collection
+[33mde8e1c3[m Fix ListView binding errors by removing forced refresh
+[33m0a9bdff[m Add ListView refresh and visibility debugging
+[33mcefa6d5[m Add comprehensive debug output for ListView binding issues
+[33me890967[m Fix connection status and data display issues
+[33m69fb56a[m Fix ListView initialization error
+[33m9d3e604[m Implement ListView for better data display and line breaks
+[33m7a051bc[m Final UI improvements and output formatting
+[33m1e0ab2a[m Simplify output and fix data transmission boundaries
+[33mcb8e77d[m Fix auto-scroll and data parsing issues

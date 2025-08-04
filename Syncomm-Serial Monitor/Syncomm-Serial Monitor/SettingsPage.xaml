@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Syncomm_Serial_Monitor.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Syncomm_Serial_Monitor"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Grid Padding="20">
+        <ScrollView VerticalScrollBarVisibility="Visible">
+
+            <StackPanel Spacing="20" HorizontalAlignment="Stretch">
+                
+                <!-- Window Appearance Settings -->
+                <Expander HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xE8B7;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="Window Appearance"/>
+                                <TextBlock Text="Customize the visual appearance of the application window." Style="{StaticResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Spacing="20">
+                        <!-- Backdrop settings moved to MainWindow navigation pane -->
+                    </StackPanel>
+                </Expander>
+
+                <!-- Output Options -->
+                <Expander HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xF259;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="Output Options"/>
+                                <TextBlock Text="Change how output is received and rendered." Style="{StaticResource CaptionTextBlockStyle}"/>
+                    </StackPanel>
+                </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Spacing="20">
+                        <RadioButtons MaxColumns="2" Header="Output Type" VerticalAlignment="Top"> 
+                            <RadioButton Content="List View"/>
+                            <RadioButton Content="Plain View"/>
+                        </RadioButtons>
+                        <StackPanel VerticalAlignment="Top" Spacing="8"> 
+                            <TextBlock Text="Options" />
+                            <CheckBox x:Name="AutoScrollToggle" Content="Auto Scroll" IsChecked="True" Margin="0,0,0,8"/>
+                            <CheckBox x:Name="TimestampToggle" Content="Time Stamp" IsChecked="True"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+
+                <!-- Connection Settings -->
+                <Expander HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xE839;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="Connection Settings"/>
+                                <TextBlock Text="Configure serial port connection parameters." Style="{StaticResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Spacing="20">
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Timeouts" />
+                            <NumberBox x:Name="ReadTimeoutNumberBox" Header="Read Timeout (ms)" Width="150" Minimum="100" Maximum="10000" Value="1000"/>
+                            <NumberBox x:Name="WriteTimeoutNumberBox" Header="Write Timeout (ms)" Width="150" Minimum="100" Maximum="10000" Value="1000"/>
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Options" />
+                            <CheckBox x:Name="AutoReconnectToggle" Content="Auto-reconnect on disconnect" IsChecked="False" Margin="0,0,0,8"/>
+                            <CheckBox x:Name="SaveLogsToggle" Content="Save logs to file" IsChecked="True"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+
+                <!-- Data Settings -->
+                <Expander HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xE8B5;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="Data Settings"/>
+                                <TextBlock Text="Configure data handling and processing options." Style="{StaticResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Spacing="20">
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Data Limits" />
+                            <NumberBox x:Name="MaxDataLengthNumberBox" Header="Maximum data length" Width="150" Minimum="1000" Maximum="100000" Value="10000"/>
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Options" />
+                            <CheckBox x:Name="AutoClearToggle" Content="Auto-clear on new connection" IsChecked="False"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+
+                <!-- DataGrid Appearance Settings -->
+                <Expander HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xE8D5;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="DataGrid Appearance"/>
+                                <TextBlock Text="Customize the appearance of the data grid display." Style="{StaticResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Spacing="20">
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Visual Options" />
+                            <CheckBox x:Name="DataGridAlternatingRowsToggle" Content="Alternating row colors" IsChecked="True" Margin="0,0,0,4"/>
+                            <CheckBox x:Name="DataGridShowBordersToggle" Content="Show cell borders" IsChecked="True" Margin="0,0,0,4"/>
+                            <CheckBox x:Name="DataGridShowHoverEffectsToggle" Content="Show hover effects" IsChecked="True" Margin="0,0,0,4"/>
+                            <CheckBox x:Name="DataGridRightAlignValuesToggle" Content="Right-align values" IsChecked="True"/>
+                        </StackPanel>
+                        <StackPanel VerticalAlignment="Top" Spacing="8">
+                            <TextBlock Text="Font Settings" />
+                            <ComboBox x:Name="DataGridFontFamilyComboBox" Header="Font Family" Width="150" SelectedIndex="0">
+                                <ComboBoxItem Content="Consolas"/>
+                                <ComboBoxItem Content="Courier New"/>
+                                <ComboBoxItem Content="Segoe UI"/>
+                                <ComboBoxItem Content="Arial"/>
+                                <ComboBoxItem Content="Times New Roman"/>
+                            </ComboBox>
+                            <NumberBox x:Name="DataGridFontSizeNumberBox" Header="Font Size" Width="150" Minimum="8" Maximum="20" Value="11" SpinButtonPlacementMode="Compact"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
+
+                <!-- Actions -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+                    <Button Content="Reset to Defaults"
+                            Style="{StaticResource DefaultButtonStyle}"
+                            Click="ResetToDefaults_Click"/>
+                    <Button Content="Save Settings"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Click="SaveSettings_Click"/>
+                </StackPanel>
+
+                <!-- About Section -->
+                <Expander HorizontalAlignment="Stretch">
+                    <Expander.Header>
+                        <Grid Padding="5,15" VerticalAlignment="Stretch" ColumnSpacing="15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Grid.Column="0" FontFamily="Segoe Fluent Icons" Glyph="&#xE946;"/>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="0">
+                                <TextBlock Text="About"/>
+                                <TextBlock Text="Learn more about the application and developer." Style="{StaticResource CaptionTextBlockStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Expander.Header>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Spacing="20">
+                        
+                        <!-- Application Info Card -->
+                        <Border
+                            HorizontalAlignment="Stretch"
+                            Width="300"
+                            Background="{ThemeResource CardBackgroundFillColorDefault}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="20"
+                            BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                            Margin="10">
+                            <StackPanel Spacing="10">
+                                <!-- App Logo -->
+                                <Image
+                                    Source="/Assets/serialplot.png"
+                                    Height="128"
+                                    Width="128"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Top" />
+
+                                <!-- App Name -->
+                                <TextBlock
+                                    Text="SyncCOM Serial Port Monitor App"
+                                    Style="{StaticResource SubtitleTextBlockStyle}"
+                                    HorizontalAlignment="Center" />
+
+                                <!-- App Description -->
+                                <TextBlock
+                                    Text="An efficient and user-friendly app for monitoring and managing serial ports."
+                                    TextWrapping="Wrap"
+                                    HorizontalAlignment="Center" />
+
+                                <!-- Developer Name -->
+                                <TextBlock
+                                    Text="Developed by HimoN7"
+                                    FontSize="14"
+                                    Opacity="0.7"
+                                    HorizontalAlignment="Center" />
+
+                                <!-- GitHub and Additional Links -->
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                                    <HyperlinkButton
+                                        Content="GitHub Repository"
+                                        NavigateUri="https://github.com/himon7"
+                                        HorizontalAlignment="Center" />
+                                    <HyperlinkButton
+                                        Content="Learn More"
+                                        NavigateUri="https://yourwebsite.com"
+                                        HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Developer Info Card -->
+                        <Border
+                            Width="300"
+                            Background="{ThemeResource CardBackgroundFillColorDefault}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="16"
+                            BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                            Margin="20">
+                            <StackPanel Spacing="10">
+                                <!-- Persona Photo -->
+                                <PersonPicture
+                                    ProfilePicture="https://avatars.githubusercontent.com/u/187613880?v=4"
+                                    Height="128"
+                                    Width="128"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Top"/>
+
+                                <!-- Developer Name -->
+                                <TextBlock
+                                    Text="Hamed Rezaei Adaryani"
+                                    Style="{StaticResource SubtitleTextBlockStyle}"
+                                    HorizontalAlignment="Center" />
+
+                                <!-- Additional Information -->
+                                <TextBlock
+                                    Text="MSc. Graduate in Textile Engineering"
+                                    HorizontalAlignment="Center" />
+                                <TextBlock
+                                    Text="Isfahan University of Technology"
+                                    HorizontalAlignment="Center" />
+
+                                <!-- Contact Links -->
+                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" Spacing="5">
+                                    <HyperlinkButton
+                                        Content="Email: h.rezaei@alumni.iut.ac.ir"
+                                        NavigateUri="mailto:h.rezaei@alumni.iut.ac.ir"
+                                        HorizontalAlignment="Center" />
+                                   
+                                    <HyperlinkButton
+                                        Content="LinkedIn: hamedrezaeia"
+                                        NavigateUri="https://ir.linkedin.com/in/hamedrezaeia"
+                                        HorizontalAlignment="Center" />
+                                    <HyperlinkButton
+                                        Content="ORCID: 0000-0003-1051-3080"
+                                        NavigateUri="https://orcid.org/0000-0003-1051-3080"
+                                        HorizontalAlignment="Center" />
+                                    <HyperlinkButton
+                                        Content="Portfolio: Personal Website"
+                                        NavigateUri="https://sites.google.com/view/hamedrezaei/home"
+                                        HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+
+</Page> 
