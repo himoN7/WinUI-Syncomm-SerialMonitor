@@ -15,6 +15,7 @@ namespace Syncomm_Serial_Monitor.Models
         private bool _autoScrollEnabled = true;
         private bool _showPlotEnabled = false;
         private string _sendText = "";
+        private int _rowLimit = 100;
 
         public string CurrentDataFormat
         {
@@ -56,6 +57,12 @@ namespace Syncomm_Serial_Monitor.Models
         {
             get => _sendText;
             set => SetProperty(ref _sendText, value);
+        }
+
+        public int RowLimit
+        {
+            get => _rowLimit;
+            set => SetProperty(ref _rowLimit, value);
         }
 
         public ObservableCollection<DataRow> DataRows { get; set; } = new ObservableCollection<DataRow>();

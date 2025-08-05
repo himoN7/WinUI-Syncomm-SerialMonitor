@@ -181,6 +181,15 @@
                                           VerticalAlignment="Center"/>
                                 <ToggleSwitch IsOn="{Binding DataModel.AutoScrollEnabled}"
                                              Margin="8,4"/>
+                                <NumberBox Header="Row Limit:"
+                                          Value="{Binding DataModel.RowLimit}"
+                                          SpinButtonPlacementMode="Inline"
+                                          SmallChange="10"
+                                          LargeChange="50"
+                                          Minimum="10"
+                                          Maximum="10000"
+                                          Width="120"
+                                          Margin="8,4"/>
                                 <Button Content="Clear"
                                         Style="{StaticResource DefaultButtonStyle}"
                                         Command="{Binding ClearDataCommand}"/>

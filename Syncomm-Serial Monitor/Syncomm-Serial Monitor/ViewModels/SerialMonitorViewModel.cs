@@ -339,12 +339,12 @@ namespace Syncomm_Serial_Monitor.ViewModels
                 DataModel.DataGridRows.Add(dataGridRow);
                 DataModel.AllDataRows.Add(dataGridRow);
                 
-                // Keep only last 100 rows for performance
-                while (DataModel.DataRows.Count > 100)
+                // Keep only last rows based on RowLimit for performance
+                while (DataModel.DataRows.Count > DataModel.RowLimit)
                 {
                     DataModel.DataRows.RemoveAt(0);
                 }
-                while (DataModel.DataGridRows.Count > 100)
+                while (DataModel.DataGridRows.Count > DataModel.RowLimit)
                 {
                     DataModel.DataGridRows.RemoveAt(0);
                 }
