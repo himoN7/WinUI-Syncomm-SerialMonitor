@@ -18,6 +18,7 @@ using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 using System.Threading;
 using System.Collections.Concurrent;
+using Syncomm_Serial_Monitor.ViewModels;
 
 namespace Syncomm_Serial_Monitor
 {
@@ -113,6 +114,9 @@ namespace Syncomm_Serial_Monitor
         
         // Complete data storage for export and disconnected viewing
         private List<DataGridRow> _allDataRows = new List<DataGridRow>();
+        
+        // Reference to ViewModel for data management
+        private SerialMonitorViewModel _viewModel;
         private readonly object _allDataLock = new object();
         private bool _isConnected = false;
         
@@ -135,6 +139,10 @@ namespace Syncomm_Serial_Monitor
         public SerialMonitorPage()
         {
             this.InitializeComponent();
+            
+            // Initialize ViewModel
+            _viewModel = new SerialMonitorViewModel();
+            this.DataContext = _viewModel;
             
             // Initialize UI components
             InitializeListView();
@@ -774,8 +782,8 @@ namespace Syncomm_Serial_Monitor
                         }
                     }
 
-                    // Keep only the last 50 rows for performance display
-                    while (_dataGridRows.Count > 50)
+                    // Keep only the last rows based on ViewModel's RowLimit
+                    while (_dataGridRows.Count > _viewModel.DataModel.RowLimit)
                     {
                         _dataGridRows.RemoveAt(0);
                     }
@@ -797,6 +805,9 @@ namespace Syncomm_Serial_Monitor
                 // Update the grid content
                 DispatcherQueue.TryEnqueue(() =>
                 {
+                    // Sync local collections with ViewModel
+                    SyncCollectionsWithViewModel();
+                    
                     UpdateDataGridContent(dataGrid, _dataGridRows);
                     
                     // Auto-scroll to bottom if enabled
@@ -859,6 +870,42 @@ namespace Syncomm_Serial_Monitor
             catch (Exception ex)
             {
                 return null;
+            }
+        }
+
+        private void SyncCollectionsWithViewModel()
+        {
+            try
+            {
+                // Sync local collections with ViewModel's collections
+                _dataGridRows.Clear();
+                _allDataRows.Clear();
+                
+                foreach (var viewModelRow in _viewModel.DataModel.DataGridRows)
+                {
+                    // Convert ViewModel DataGridRow to local DataGridRow
+                    var localRow = new DataGridRow
+                    {
+                        Timestamp = viewModelRow.Timestamp,
+                        Values = new List<string>(viewModelRow.Values)
+                    };
+                    _dataGridRows.Add(localRow);
+                }
+                
+                foreach (var viewModelRow in _viewModel.DataModel.AllDataGridRows)
+                {
+                    // Convert ViewModel DataGridRow to local DataGridRow
+                    var localRow = new DataGridRow
+                    {
+                        Timestamp = viewModelRow.Timestamp,
+                        Values = new List<string>(viewModelRow.Values)
+                    };
+                    _allDataRows.Add(localRow);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error syncing collections: {ex.Message}");
             }
         }
 
