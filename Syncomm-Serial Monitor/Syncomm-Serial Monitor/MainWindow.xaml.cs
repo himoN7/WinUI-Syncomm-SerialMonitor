@@ -64,7 +64,7 @@ namespace Syncomm_Serial_Monitor
             ContentFrame.Navigated += ContentFrame_Navigated;
             
             // Navigate to the default page
-            ContentFrame.Navigate(typeof(SerialMonitorPage));
+            ContentFrame.Navigate(typeof(Views.SerialMonitorView));
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

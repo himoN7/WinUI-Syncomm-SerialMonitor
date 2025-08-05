@@ -45,7 +45,7 @@ namespace Syncomm_Serial_Monitor
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             m_window = new MainWindow( );
-            m_window.AppWindow.Resize(new SizeInt32(1367, 764));
+            m_window.AppWindow.Resize(new SizeInt32(1366, 764));
             // Check if Animated Icons are supported
         
 

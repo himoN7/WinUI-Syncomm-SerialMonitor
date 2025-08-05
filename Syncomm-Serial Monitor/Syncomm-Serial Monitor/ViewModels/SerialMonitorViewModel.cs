@@ -12,6 +12,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Syncomm_Serial_Monitor.Models;
 using Syncomm_Serial_Monitor.Services;
+using System.Collections.ObjectModel;
 
 namespace Syncomm_Serial_Monitor.ViewModels
 {
@@ -21,6 +22,7 @@ namespace Syncomm_Serial_Monitor.ViewModels
         private readonly DataProcessingService _dataProcessingService;
         private readonly NotificationService _notificationService;
         private readonly ParsingService _parsingService;
+        private readonly DataManagementService _dataManagementService;
         private readonly DispatcherQueue _dispatcherQueue;
 
         private bool _isConnected;
@@ -37,6 +39,9 @@ namespace Syncomm_Serial_Monitor.ViewModels
             _notificationService = new NotificationService();
             _parsingService = new ParsingService();
             _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
+            
+            // Initialize the optimized DataManagementService
+            _dataManagementService = new DataManagementService(_dispatcherQueue);
 
             // Initialize commands
             ConnectCommand = new RelayCommand(Connect, CanConnect);
@@ -72,6 +77,14 @@ namespace Syncomm_Serial_Monitor.ViewModels
         public DataModel DataModel { get; }
         public PlotModel PlotModel { get; }
         public ParsingModel ParsingModel { get; }
+
+        // Expose DataManagementService data for MVVM binding
+        public ObservableCollection<Models.DataGridRow> DisplayRows => _dataManagementService.DisplayRows;
+        public long TotalBytesReceived => _dataManagementService.TotalBytesReceived;
+        public long TotalRowsProcessed => _dataManagementService.TotalRowsProcessed;
+        public int QueueCount => _dataManagementService.QueueCount;
+        public int DisplayRowCount => _dataManagementService.GetDisplayRowCount();
+        public int TotalRowCount => _dataManagementService.GetTotalRowCount();
 
         public bool IsConnected
         {
@@ -222,9 +235,19 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         private void ClearData()
         {
+            // Clear DataManagementService data
+            _dataManagementService.ClearQueueAndDisplay();
+            
+            // Clear other data collections
             DataModel.ClearData();
-            SerialPortModel.ResetCounters();
-            ShowNotification("All data cleared", "Informational");
+            
+            // Trigger property change notifications
+            OnPropertyChanged(nameof(DisplayRows));
+            OnPropertyChanged(nameof(TotalBytesReceived));
+            OnPropertyChanged(nameof(TotalRowsProcessed));
+            OnPropertyChanged(nameof(QueueCount));
+            OnPropertyChanged(nameof(DisplayRowCount));
+            OnPropertyChanged(nameof(TotalRowCount));
         }
 
         private async void CopyData()
@@ -245,12 +268,42 @@ namespace Syncomm_Serial_Monitor.ViewModels
         {
             try
             {
-                var fileName = await _dataProcessingService.ExportToCSVFileAsync(DataModel.AllDataGridRows);
-                ShowNotification($"Data exported to {fileName}", "Success");
+                // Get all data from DataManagementService
+                var allData = _dataManagementService.GetAllData();
+                
+                if (allData.Count == 0)
+                {
+                    ShowNotification("No data to export", "Warning");
+                    return;
+                }
+
+                var savePicker = new Windows.Storage.Pickers.FileSavePicker();
+                savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+                savePicker.FileTypeChoices.Add("CSV files", new List<string>() { ".csv" });
+                savePicker.SuggestedFileName = $"SerialData_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+
+                var file = await savePicker.PickSaveFileAsync();
+                if (file != null)
+                {
+                    var csvContent = new StringBuilder();
+                    
+                    // Add header
+                    csvContent.AppendLine("Timestamp,Value1,Value2,Value3,Value4,Value5,Value6,Value7,Value8");
+                    
+                    // Add data rows
+                    foreach (var row in allData)
+                    {
+                        var values = string.Join(",", row.Values);
+                        csvContent.AppendLine($"{row.Timestamp},{values}");
+                    }
+                    
+                    await Windows.Storage.FileIO.WriteTextAsync(file, csvContent.ToString());
+                    ShowNotification($"Data exported successfully: {allData.Count} rows", "Success");
+                }
             }
             catch (Exception ex)
             {
-                ShowNotification($"Failed to export data: {ex.Message}", "Error");
+                ShowNotification($"Export error: {ex.Message}", "Error");
             }
         }
 
@@ -326,26 +379,18 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         private void OnDataReceived(object sender, DataReceivedEventArgs e)
         {
+            // Update bytes received
             SerialPortModel.BytesReceived += e.Data.Length;
+            _dataManagementService.UpdateBytesReceived(e.Data.Length);
             
+            // Process data using the optimized DataManagementService
             var processedData = _dataProcessingService.ProcessData(e.Data, DataModel.CurrentDataFormat);
-            var dataRow = _dataProcessingService.CreateDataRow(processedData, DataModel.TimestampEnabled);
-            var dataGridRow = _dataProcessingService.CreateDataGridRow(processedData, DataModel.TimestampEnabled);
             
-            // Update UI on UI thread using DispatcherQueue
-            _dispatcherQueue.TryEnqueue(() =>
+            if (!string.IsNullOrEmpty(processedData))
             {
-                // Add to complete storage (for export)
-                DataModel.AllDataRows.Add(dataRow);
-                DataModel.AllDataGridRows.Add(dataGridRow);
+                // Add to DataManagementService for optimized processing
+                _dataManagementService.AddData(processedData, DataModel.TimestampEnabled);
                 
-                // Add to UI display collections
-                DataModel.DataRows.Add(dataRow);
-                DataModel.DataGridRows.Add(dataGridRow);
-                
-                // Update UI display based on RowLimit
-                DataModel.UpdateUIDisplay();
-
                 // Parse data using the parsing service
                 _parsingService.Parse(processedData, ParsingModel.SyncToSystemClock, ParsingModel.UseExternalClock, ParsingModel.ExternalClockLabel);
 
@@ -358,6 +403,16 @@ namespace Syncomm_Serial_Monitor.ViewModels
                         PlotModel.AddDataPoint(numericValue.Value, false);
                     }
                 }
+            }
+            
+            // Trigger property change notifications for statistics
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                OnPropertyChanged(nameof(TotalBytesReceived));
+                OnPropertyChanged(nameof(TotalRowsProcessed));
+                OnPropertyChanged(nameof(QueueCount));
+                OnPropertyChanged(nameof(DisplayRowCount));
+                OnPropertyChanged(nameof(TotalRowCount));
             });
         }
 
@@ -445,6 +500,9 @@ namespace Syncomm_Serial_Monitor.ViewModels
         public void Dispose()
         {
             _serialPortService?.Dispose();
+            _dataProcessingService?.Dispose();
+            _parsingService?.Dispose();
+            _dataManagementService?.Dispose();
         }
 
         #endregion
