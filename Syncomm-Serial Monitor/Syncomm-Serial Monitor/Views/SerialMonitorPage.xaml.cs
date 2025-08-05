@@ -21,7 +21,7 @@ using System.Collections.Concurrent;
 using Syncomm_Serial_Monitor.ViewModels;
 using Syncomm_Serial_Monitor.Services;
 
-namespace Syncomm_Serial_Monitor
+namespace Syncomm_Serial_Monitor.Views
 {
     public sealed partial class SerialMonitorPage : Page
     {
@@ -146,22 +146,23 @@ namespace Syncomm_Serial_Monitor
         {
             this.InitializeComponent();
             
-            // Initialize ViewModel
-            _viewModel = new SerialMonitorViewModel();
+            // Initialize ViewModel with dispatcher queue
+            _viewModel = new SerialMonitorViewModel(DispatcherQueue);
+            
+            // Set DataContext for MVVM binding
             this.DataContext = _viewModel;
             
-            // Initialize optimized data management service
-            _dataManagementService = new DataManagementService(this.DispatcherQueue);
-            
             // Initialize UI components
-            InitializeListView();
-            InitializeDataGrid();
-            InitializeItemRepeater();
+            InitializeDefaultValues();
+            LoadAvailablePorts();
             
-            // Pre-initialize resources for better performance
-            PreInitializeResources();
+            // Initialize smooth processing for high-performance data handling
+            InitializeSmoothProcessing();
             
-            // Add event handlers
+            // Initialize data management service
+            _dataManagementService = _viewModel.DataManagementService;
+            
+            // Subscribe to page lifecycle events
             this.Loaded += SerialMonitorPage_Loaded;
             this.Unloaded += SerialMonitorPage_Unloaded;
         }
@@ -479,18 +480,18 @@ namespace Syncomm_Serial_Monitor
 
             // Since we're now using DataManagementService directly, 
             // we only need to trigger UI updates from the service
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                try
-                {
-                    UpdateDisplayText();
-                }
-                catch (Exception ex)
-                {
-                    // Log error but don't block processing
-                    System.Diagnostics.Debug.WriteLine($"UI update error: {ex.Message}");
-                }
-            });
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        try
+                        {
+                            UpdateDisplayText();
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log error but don't block processing
+                            System.Diagnostics.Debug.WriteLine($"UI update error: {ex.Message}");
+                        }
+                    });
         }
 
         private void UpdateDisplayText()
@@ -816,9 +817,9 @@ namespace Syncomm_Serial_Monitor
                 // No need to parse currentText since DataManagementService already handles the data
                 DispatcherQueue.TryEnqueue(() =>
                 {
-                    try
-                    {
-                        var dataGrid = this.FindName("DataDataGrid") as Grid;
+            try
+            {
+                var dataGrid = this.FindName("DataDataGrid") as Grid;
                         if (dataGrid != null && _dataManagementService != null)
                         {
                             // Only update if there are actual rows to display
@@ -847,15 +848,15 @@ namespace Syncomm_Serial_Monitor
                                 }
                             }
                         }
-                        
-                        // Auto-scroll to bottom if enabled
-                        if (_dataGridAutoScrollEnabled)
-                        {
-                            var scrollViewer = this.FindName("DataGridScrollViewer") as ScrollViewer;
-                            if (scrollViewer != null)
-                            {
-                                scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null);
-                            }
+                    
+                    // Auto-scroll to bottom if enabled
+                    if (_dataGridAutoScrollEnabled)
+                    {
+                        var scrollViewer = this.FindName("DataGridScrollViewer") as ScrollViewer;
+                        if (scrollViewer != null)
+                                {
+                                    scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null);
+                        }
                         }
                     }
                     catch (Exception ex)
@@ -1561,7 +1562,7 @@ namespace Syncomm_Serial_Monitor
                     _serialPort.Dispose();
                     _serialPort = null;
                 }
-                
+
                 isConnected = false;
                 _isConnected = false;
                 
@@ -1574,7 +1575,7 @@ namespace Syncomm_Serial_Monitor
                 // Update UI
                 DispatcherQueue.TryEnqueue(() =>
                 {
-                    UpdateConnectionState();
+                UpdateConnectionState();
                     UpdateConnectionToggleUI();
                     UpdateStatistics();
                 });
@@ -1613,7 +1614,7 @@ namespace Syncomm_Serial_Monitor
                     if (bytesReceived % 5000 == 0) // Update every 5000 bytes consistently
                     
                     {
-                        DispatcherQueue.TryEnqueue(() => UpdateStatistics());
+                    DispatcherQueue.TryEnqueue(() => UpdateStatistics());
                     }
                 }
             }
@@ -2750,28 +2751,28 @@ namespace Syncomm_Serial_Monitor
             try
             {
                 if (dataRows.Count == 0)
-                {
-                    ShowInfoBar("No data to export", InfoBarSeverity.Informational);
-                    return;
-                }
+                    {
+                        ShowInfoBar("No data to export", InfoBarSeverity.Informational);
+                        return;
+                    }
 
                 var csvContent = new StringBuilder();
                 
                 // Determine max columns from data
                 int maxColumns = dataRows.Max(row => row.Values.Count);
-                
-                // Add header
+                    
+                    // Add header
                 csvContent.AppendLine("Time," + string.Join(",", Enumerable.Range(1, maxColumns).Select(i => $"Value{i}")));
-                
-                // Add data rows
+                    
+                    // Add data rows
                 foreach (var row in dataRows)
-                {
-                    var values = new List<string> { row.Timestamp };
-                    for (int i = 0; i < maxColumns; i++)
                     {
-                        values.Add(row.Values.Count > i ? row.Values[i] : "");
-                    }
-                    csvContent.AppendLine(string.Join(",", values));
+                        var values = new List<string> { row.Timestamp };
+                    for (int i = 0; i < maxColumns; i++)
+                        {
+                            values.Add(row.Values.Count > i ? row.Values[i] : "");
+                        }
+                        csvContent.AppendLine(string.Join(",", values));
                 }
 
                 // Use .NET-native file saving approach

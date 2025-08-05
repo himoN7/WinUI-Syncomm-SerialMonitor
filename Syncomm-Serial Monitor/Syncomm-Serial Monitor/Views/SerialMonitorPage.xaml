@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Syncomm_Serial_Monitor.SerialMonitorPage"
+    x:Class="Syncomm_Serial_Monitor.Views.SerialMonitorPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -55,27 +55,33 @@
                             <StackPanel Grid.Column="2" Spacing="10" Orientation="Horizontal" VerticalAlignment="Center">
                                
 
-                                <!-- Port -->
-                                <ComboBox
-                                          MinWidth="100"
-                                          HorizontalContentAlignment="Stretch"
-                                                HorizontalAlignment="Stretch"
-                                    
-                                               VerticalAlignment="Center" Grid.Row="0" Grid.Column="1" x:Name="PortComboBox"/>
-                                <!-- Refresh -->
-
-                                <Button x:Name="RefreshPortsButton" MinWidth="100"
-HorizontalContentAlignment="Center"
-      HorizontalAlignment="Stretch" Grid.Row="0" Grid.Column="2" Content="Refresh" Style="{StaticResource DefaultButtonStyle}" Click="RefreshPortsButton_Click"/>
+                                <!-- Port Selection -->
+                                <ComboBox MinWidth="100"
+                                         HorizontalContentAlignment="Stretch"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Center"
+                                         ItemsSource="{Binding SerialPortModel.AvailablePorts}"
+                                         SelectedItem="{Binding SerialPortModel.SelectedPort}"/>
+                                
+                                <!-- Refresh Button -->
+                                <Button MinWidth="100"
+                                        HorizontalContentAlignment="Center"
+                                        HorizontalAlignment="Stretch"
+                                        Content="Refresh"
+                                        Style="{StaticResource DefaultButtonStyle}"
+                                        Command="{Binding RefreshPortsCommand}"
+                                        IsEnabled="{Binding IsRefreshing, Converter={StaticResource InverseBooleanConverter}}"/>
                                 
                                 <!-- Connection Toggle Button -->
-                                <ToggleButton x:Name="ConnectionToggleButton" 
-                                             Width="120" 
+                                <ToggleButton Width="120" 
                                              Height="32"
-                                             Click="ConnectionToggleButton_Click">
+                                             Command="{Binding ConnectCommand}">
                                     <StackPanel Orientation="Horizontal" Spacing="5">
-                                        <FontIcon x:Name="ConnectionIcon" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
-                                        <TextBlock x:Name="ConnectionText" Text="Connect" FontWeight="SemiBold"/>
+                                        <FontIcon FontFamily="Segoe MDL2 Assets" 
+                                                 FontSize="14"
+                                                 Glyph="{Binding ConnectionIcon}"/>
+                                        <TextBlock Text="{Binding ConnectionButtonText}" 
+                                                   FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </ToggleButton>
                             </StackPanel>
@@ -265,12 +271,27 @@ HorizontalContentAlignment="Center"
                                                              ScrollViewer.BringIntoViewOnFocusChange="True"
                                                              ViewChanged="DataGridScrollViewer_ViewChanged"
                                                              x:Name="DataGridScrollViewer">
-                                                    <Grid x:Name="DataDataGrid"
-                                                          
-                                                          HorizontalAlignment="Center"
-                                                          VerticalAlignment="Top">
-                                                        <!-- Grid content will be populated dynamically -->
-                                                    </Grid>
+                                                    <ListView x:Name="DataListView"
+                                                              ItemsSource="{Binding DataManagementService.DisplayRows}"
+                                                              HorizontalAlignment="Stretch"
+                                                              VerticalAlignment="Top">
+                                                        <ListView.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="120"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Grid.Column="0" 
+                                                                               Text="{Binding Timestamp}" 
+                                                                               FontFamily="Consolas"/>
+                                                                    <TextBlock Grid.Column="1" 
+                                                                               Text="{Binding Values, Converter={StaticResource StringFormatConverter}, ConverterParameter='{0}'}" 
+                                                                               FontFamily="Consolas"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ListView.ItemTemplate>
+                                                    </ListView>
                                                 </ScrollViewer>
                                             </Grid>
                                         </Border>
@@ -328,15 +349,13 @@ HorizontalContentAlignment="Center"
                                         </StackPanel>
 
                                         <!-- Statistics Section -->
-                                       
-
                                         <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
-                Orientation="Horizontal"
-                Spacing="12"
-                Margin="8,8,0,0">
-                                            <TextBlock x:Name="BytesReceivedText" Text="Bytes Received: 0"/>
-                                            <TextBlock x:Name="BytesSentText" Text="Bytes Sent: 0"/>
-                                            <TextBlock x:Name="ConnectionStatusText" Text="Status: Disconnected"/>
+                                                   Orientation="Horizontal"
+                                                   Spacing="12"
+                                                   Margin="8,8,0,0">
+                                            <TextBlock Text="{Binding BytesReceived, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Received: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding BytesSent, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Sent: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding ConnectionStatus, Converter={StaticResource StringFormatConverter}, ConverterParameter='Status: {0}'}"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>

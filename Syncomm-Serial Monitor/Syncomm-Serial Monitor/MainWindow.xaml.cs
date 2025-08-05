@@ -27,9 +27,9 @@ namespace Syncomm_Serial_Monitor
     {
         private readonly Dictionary<string, Type> _pages = new()
         {
-            { "SerialMonitorPage", typeof(Views.SerialMonitorView) },
+            { "SerialMonitorPage", typeof(Views.SerialMonitorPage) },
             { "DataAnalysisPage", typeof(PlotPage) },
-            { "LogsPage", typeof(Views.SerialMonitorView) }, // Placeholder
+            { "LogsPage", typeof(Views.SerialMonitorPage) }, // Placeholder
             { "SettingsPage", typeof(SettingsPage) }
         };
 
@@ -64,7 +64,7 @@ namespace Syncomm_Serial_Monitor
             ContentFrame.Navigated += ContentFrame_Navigated;
             
             // Navigate to the default page
-            ContentFrame.Navigate(typeof(Views.SerialMonitorView));
+            ContentFrame.Navigate(typeof(Views.SerialMonitorPage));
         }
 
         private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

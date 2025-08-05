@@ -12,7 +12,6 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Syncomm_Serial_Monitor.Models;
 using Syncomm_Serial_Monitor.Services;
-using System.Collections.ObjectModel;
 
 namespace Syncomm_Serial_Monitor.ViewModels
 {
@@ -31,6 +30,10 @@ namespace Syncomm_Serial_Monitor.ViewModels
         private bool _isRefreshing;
         private string _statusMessage = "";
         private string _statusSeverity = "Informational";
+        private long _bytesReceived = 0;
+        private long _bytesSent = 0;
+        private string _connectionStatus = "Disconnected";
+        private int _queueCount = 0;
 
         public SerialMonitorViewModel(DispatcherQueue? dispatcherQueue = null)
         {
@@ -38,10 +41,8 @@ namespace Syncomm_Serial_Monitor.ViewModels
             _dataProcessingService = new DataProcessingService();
             _notificationService = new NotificationService();
             _parsingService = new ParsingService();
+            _dataManagementService = new DataManagementService(dispatcherQueue ?? DispatcherQueue.GetForCurrentThread());
             _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
-            
-            // Initialize the optimized DataManagementService
-            _dataManagementService = new DataManagementService(_dispatcherQueue);
 
             // Initialize commands
             ConnectCommand = new RelayCommand(Connect, CanConnect);
@@ -78,14 +79,6 @@ namespace Syncomm_Serial_Monitor.ViewModels
         public PlotModel PlotModel { get; }
         public ParsingModel ParsingModel { get; }
 
-        // Expose DataManagementService data for MVVM binding
-        public ObservableCollection<Models.DataGridRow> DisplayRows => _dataManagementService.DisplayRows;
-        public long TotalBytesReceived => _dataManagementService.TotalBytesReceived;
-        public long TotalRowsProcessed => _dataManagementService.TotalRowsProcessed;
-        public int QueueCount => _dataManagementService.QueueCount;
-        public int DisplayRowCount => _dataManagementService.GetDisplayRowCount();
-        public int TotalRowCount => _dataManagementService.GetTotalRowCount();
-
         public bool IsConnected
         {
             get => _isConnected;
@@ -121,6 +114,32 @@ namespace Syncomm_Serial_Monitor.ViewModels
             get => _statusSeverity;
             set => SetProperty(ref _statusSeverity, value);
         }
+
+        public long BytesReceived
+        {
+            get => _bytesReceived;
+            set => SetProperty(ref _bytesReceived, value);
+        }
+
+        public long BytesSent
+        {
+            get => _bytesSent;
+            set => SetProperty(ref _bytesSent, value);
+        }
+
+        public string ConnectionStatus
+        {
+            get => _connectionStatus;
+            set => SetProperty(ref _connectionStatus, value);
+        }
+
+        public int QueueCount
+        {
+            get => _queueCount;
+            set => SetProperty(ref _queueCount, value);
+        }
+
+        public DataManagementService DataManagementService => _dataManagementService;
 
         #endregion
 
@@ -235,19 +254,9 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         private void ClearData()
         {
-            // Clear DataManagementService data
-            _dataManagementService.ClearQueueAndDisplay();
-            
-            // Clear other data collections
             DataModel.ClearData();
-            
-            // Trigger property change notifications
-            OnPropertyChanged(nameof(DisplayRows));
-            OnPropertyChanged(nameof(TotalBytesReceived));
-            OnPropertyChanged(nameof(TotalRowsProcessed));
-            OnPropertyChanged(nameof(QueueCount));
-            OnPropertyChanged(nameof(DisplayRowCount));
-            OnPropertyChanged(nameof(TotalRowCount));
+            SerialPortModel.ResetCounters();
+            ShowNotification("All data cleared", "Informational");
         }
 
         private async void CopyData()
@@ -268,42 +277,12 @@ namespace Syncomm_Serial_Monitor.ViewModels
         {
             try
             {
-                // Get all data from DataManagementService
-                var allData = _dataManagementService.GetAllData();
-                
-                if (allData.Count == 0)
-                {
-                    ShowNotification("No data to export", "Warning");
-                    return;
-                }
-
-                var savePicker = new Windows.Storage.Pickers.FileSavePicker();
-                savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
-                savePicker.FileTypeChoices.Add("CSV files", new List<string>() { ".csv" });
-                savePicker.SuggestedFileName = $"SerialData_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-
-                var file = await savePicker.PickSaveFileAsync();
-                if (file != null)
-                {
-                    var csvContent = new StringBuilder();
-                    
-                    // Add header
-                    csvContent.AppendLine("Timestamp,Value1,Value2,Value3,Value4,Value5,Value6,Value7,Value8");
-                    
-                    // Add data rows
-                    foreach (var row in allData)
-                    {
-                        var values = string.Join(",", row.Values);
-                        csvContent.AppendLine($"{row.Timestamp},{values}");
-                    }
-                    
-                    await Windows.Storage.FileIO.WriteTextAsync(file, csvContent.ToString());
-                    ShowNotification($"Data exported successfully: {allData.Count} rows", "Success");
-                }
+                var fileName = await _dataProcessingService.ExportToCSVFileAsync(DataModel.AllDataGridRows);
+                ShowNotification($"Data exported to {fileName}", "Success");
             }
             catch (Exception ex)
             {
-                ShowNotification($"Export error: {ex.Message}", "Error");
+                ShowNotification($"Failed to export data: {ex.Message}", "Error");
             }
         }
 
@@ -379,40 +358,37 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         private void OnDataReceived(object sender, DataReceivedEventArgs e)
         {
-            // Update bytes received
-            SerialPortModel.BytesReceived += e.Data.Length;
-            _dataManagementService.UpdateBytesReceived(e.Data.Length);
-            
-            // Process data using the optimized DataManagementService
-            var processedData = _dataProcessingService.ProcessData(e.Data, DataModel.CurrentDataFormat);
-            
-            if (!string.IsNullOrEmpty(processedData))
-            {
-                // Add to DataManagementService for optimized processing
-                _dataManagementService.AddData(processedData, DataModel.TimestampEnabled);
-                
-                // Parse data using the parsing service
-                _parsingService.Parse(processedData, ParsingModel.SyncToSystemClock, ParsingModel.UseExternalClock, ParsingModel.ExternalClockLabel);
-
-                // Add to plot if enabled
-                if (PlotModel.PlotInitialized && DataModel.ShowPlotEnabled)
-                {
-                    var numericValue = _dataProcessingService.ExtractNumericValue(processedData);
-                    if (numericValue.HasValue)
-                    {
-                        PlotModel.AddDataPoint(numericValue.Value, false);
-                    }
-                }
-            }
-            
-            // Trigger property change notifications for statistics
             _dispatcherQueue.TryEnqueue(() =>
             {
-                OnPropertyChanged(nameof(TotalBytesReceived));
-                OnPropertyChanged(nameof(TotalRowsProcessed));
-                OnPropertyChanged(nameof(QueueCount));
-                OnPropertyChanged(nameof(DisplayRowCount));
-                OnPropertyChanged(nameof(TotalRowCount));
+                try
+                {
+                    // Update statistics
+                    BytesReceived += e.Data.Length;
+                    
+                    // Process data through DataManagementService for optimal performance
+                    _dataManagementService.AddData(e.Data, DataModel.TimestampEnabled);
+                    
+                    // Update queue count for monitoring
+                    QueueCount = _dataManagementService.QueueCount;
+                    
+                    // Update connection status
+                    ConnectionStatus = $"Connected | Display: {_dataManagementService.GetDisplayRowCount()} | Total: {_dataManagementService.GetTotalRowCount()} | Queue: {QueueCount}";
+                    
+                    // Update plot if enabled
+                    if (DataModel.ShowPlotEnabled)
+                    {
+                        // Extract numeric value for plotting
+                        var numericValue = _dataProcessingService.ExtractNumericValue(e.Data);
+                        if (numericValue.HasValue)
+                        {
+                            PlotModel.AddDataPoint(numericValue.Value, false);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ShowNotification($"Data processing error: {ex.Message}", "Error");
+                }
             });
         }
 
@@ -423,23 +399,36 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         private void OnConnectionStateChanged(object sender, ConnectionStateChangedEventArgs e)
         {
-            IsConnected = e.IsConnected;
-            SerialPortModel.IsConnected = e.IsConnected;
-            
-            if (e.IsConnected)
+            _dispatcherQueue.TryEnqueue(() =>
             {
-                ConnectionButtonText = "Disconnect";
-                ConnectionIcon = "\uE8B7"; // Disconnect icon
-                SerialPortModel.ConnectionStatus = $"Connected to {e.PortName}";
-                ShowNotification($"Connected to {e.PortName}", "Success");
-            }
-            else
-            {
-                ConnectionButtonText = "Connect";
-                ConnectionIcon = "\uE8B8"; // Connect icon
-                SerialPortModel.ConnectionStatus = "Disconnected";
-                ShowNotification("Serial port disconnected", "Informational");
-            }
+                IsConnected = e.IsConnected;
+                
+                if (e.IsConnected)
+                {
+                    ConnectionButtonText = "Disconnect";
+                    ConnectionIcon = "\uE8B9"; // Disconnect icon
+                    ConnectionStatus = "Connected";
+                    ShowNotification("Serial port connected successfully", "Success");
+                    
+                    // Clear any pending data in the management service
+                    _dataManagementService.ClearQueueAndDisplay();
+                }
+                else
+                {
+                    ConnectionButtonText = "Connect";
+                    ConnectionIcon = "\uE8B8"; // Connect icon
+                    ConnectionStatus = "Disconnected";
+                    ShowNotification("Serial port disconnected", "Informational");
+                    
+                    // Clear queue and display but preserve stored data
+                    _dataManagementService.ClearQueueAndDisplay();
+                }
+                
+                // Update command states
+                ((RelayCommand)ConnectCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)SendDataCommand).RaiseCanExecuteChanged();
+                ((RelayCommand)SendHexDataCommand).RaiseCanExecuteChanged();
+            });
         }
 
         private void ShowNotification(string message, string severity)
@@ -500,9 +489,6 @@ namespace Syncomm_Serial_Monitor.ViewModels
         public void Dispose()
         {
             _serialPortService?.Dispose();
-            _dataProcessingService?.Dispose();
-            _parsingService?.Dispose();
-            _dataManagementService?.Dispose();
         }
 
         #endregion
