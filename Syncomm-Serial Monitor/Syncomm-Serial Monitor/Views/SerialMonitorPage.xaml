@@ -6,8 +6,14 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ScottPlot="using:ScottPlot.WinUI"
+    xmlns:converters="using:Syncomm_Serial_Monitor.Converters"
     mc:Ignorable="d"
     Background="Transparent">
+
+    <Page.Resources>
+        <converters:StringFormatConverter x:Key="StringFormatConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+    </Page.Resources>
 
     <Grid >
         <Grid.RowDefinitions>
@@ -285,7 +291,7 @@
                                                                                Text="{Binding Timestamp}" 
                                                                                FontFamily="Consolas"/>
                                                                     <TextBlock Grid.Column="1" 
-                                                                               Text="{Binding Values}" 
+                                                                               Text="{Binding Values, Converter={StaticResource StringFormatConverter}, ConverterParameter='{0}'}" 
                                                                                FontFamily="Consolas"/>
                                                                 </Grid>
                                                             </DataTemplate>
@@ -352,9 +358,9 @@
                                                    Orientation="Horizontal"
                                                    Spacing="12"
                                                    Margin="8,8,0,0">
-                                            <TextBlock Text="{Binding BytesReceived, StringFormat='Bytes Received: {0:N0}'}"/>
-                                            <TextBlock Text="{Binding BytesSent, StringFormat='Bytes Sent: {0:N0}'}"/>
-                                            <TextBlock Text="{Binding ConnectionStatus, StringFormat='Status: {0}'}"/>
+                                            <TextBlock Text="{Binding BytesReceived, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Received: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding BytesSent, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Sent: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding ConnectionStatus, Converter={StaticResource StringFormatConverter}, ConverterParameter='Status: {0}'}"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
