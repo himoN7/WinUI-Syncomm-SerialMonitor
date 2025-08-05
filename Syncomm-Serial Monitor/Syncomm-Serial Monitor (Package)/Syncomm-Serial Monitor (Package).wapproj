@@ -93,8 +93,8 @@
   <ItemGroup>
     <PackageReference Include="FluentIcons.WinUI" Version="1.1.303" />
     <PackageReference Include="H.OxyPlot.WinUI" Version="0.9.30" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250228001" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
     <PackageReference Include="ScottPlot.WinUI" Version="5.0.55" />
     <PackageReference Include="SkiaSharp.Views.WinUI" Version="3.119.0" />
     <PackageReference Include="Syncfusion.Chart.WinUI" Version="30.1.42" />

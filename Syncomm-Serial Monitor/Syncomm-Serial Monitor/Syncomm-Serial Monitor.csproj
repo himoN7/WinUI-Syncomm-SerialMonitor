@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
@@ -6,12 +6,14 @@
     <RootNamespace>Syncomm_Serial_Monitor</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64</Platforms>
-    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <Platform>x64</Platform>
     <UseWinUI>true</UseWinUI>
     <Nullable>enable</Nullable>
+    <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
   </PropertyGroup>
 	<PropertyGroup>
 		<EnableMsixTooling>true</EnableMsixTooling>
+		<EnableXamlCompiler>false</EnableXamlCompiler>
 	</PropertyGroup>
 	<ItemGroup>
 	  <Content Remove="Assets\serialplot.png" />
@@ -23,11 +25,11 @@
 
   <ItemGroup>
     <PackageReference Include="FluentIcons.WinUI" Version="1.1.303" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250228001" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
     <PackageReference Include="ScottPlot.WinUI" Version="5.0.55" />
     <PackageReference Include="System.Runtime.WindowsRuntime.UI.Xaml" Version="4.7.0" />
-    <PackageReference Include="System.IO.Ports" Version="9.0.0" />
+    <PackageReference Include="System.IO.Ports" Version="9.0.8" />
   </ItemGroup>
 
   <ItemGroup>

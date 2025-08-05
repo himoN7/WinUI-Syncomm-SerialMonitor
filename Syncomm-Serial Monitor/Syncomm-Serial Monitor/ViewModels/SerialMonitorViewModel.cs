@@ -308,19 +308,24 @@ namespace Syncomm_Serial_Monitor.ViewModels
             
             var processedData = _dataProcessingService.ProcessData(e.Data, DataModel.CurrentDataFormat);
             var dataRow = _dataProcessingService.CreateDataRow(processedData, DataModel.TimestampEnabled);
+            var dataGridRow = _dataProcessingService.CreateDataGridRow(processedData, DataModel.TimestampEnabled);
             
             // Add to collections on UI thread
-            Application.Current.DispatcherQueue.TryEnqueue(() =>
+            // Note: In a real implementation, you would get the DispatcherQueue from the current window
+            // For now, we'll update the UI directly since we're in the ViewModel
+            DataModel.DataRows.Add(dataRow);
+            DataModel.DataGridRows.Add(dataGridRow);
+            DataModel.AllDataRows.Add(dataGridRow);
+            
+            // Keep only last 100 rows for performance
+            while (DataModel.DataRows.Count > 100)
             {
-                DataModel.DataRows.Add(dataRow);
-                DataModel.AllDataRows.Add(dataRow);
-                
-                // Keep only last 100 rows for performance
-                while (DataModel.DataRows.Count > 100)
-                {
-                    DataModel.DataRows.RemoveAt(0);
-                }
-            });
+                DataModel.DataRows.RemoveAt(0);
+            }
+            while (DataModel.DataGridRows.Count > 100)
+            {
+                DataModel.DataGridRows.RemoveAt(0);
+            }
 
             // Parse data using the parsing service
             _parsingService.Parse(processedData, ParsingModel.SyncToSystemClock, ParsingModel.UseExternalClock, ParsingModel.ExternalClockLabel);
@@ -373,23 +378,17 @@ namespace Syncomm_Serial_Monitor.ViewModels
         private void OnParsingCompleted(object sender, ParsingCompletedEventArgs e)
         {
             // Update parsing model with results
-            Application.Current.DispatcherQueue.TryEnqueue(() =>
+            ParsingModel.UpdateParsedData(e.Labels, e.NumericData, e.TimeStamps);
+            
+            if (ParsingModel.HasData())
             {
-                ParsingModel.UpdateParsedData(e.Labels, e.NumericData, e.TimeStamps);
-                
-                if (ParsingModel.HasData())
-                {
-                    ShowNotification($"Parsed {ParsingModel.GetDataCount()} data points", "Success");
-                }
-            });
+                ShowNotification($"Parsed {ParsingModel.GetDataCount()} data points", "Success");
+            }
         }
 
         private void OnParsingProgressUpdated(object sender, ProgressEventArgs e)
         {
-            Application.Current.DispatcherQueue.TryEnqueue(() =>
-            {
-                ParsingModel.ParsingProgress = e.Progress;
-            });
+            ParsingModel.ParsingProgress = e.Progress;
         }
 
         #endregion

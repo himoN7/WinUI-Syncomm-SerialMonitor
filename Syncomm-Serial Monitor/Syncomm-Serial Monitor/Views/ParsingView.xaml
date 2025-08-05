@@ -5,8 +5,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:converters="using:Syncomm_Serial_Monitor.Converters"
     mc:Ignorable="d"
     Background="Transparent">
+
+    <Page.Resources>
+        <converters:StringFormatConverter x:Key="StringFormatConverter"/>
+    </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -65,10 +70,10 @@
                                  Maximum="100" 
                                  Height="20"/>
                     
-                    <TextBlock Text="{Binding ParsingModel.ParsingProgress, StringFormat='Progress: {0:F1}%'}"
+                    <TextBlock Text="{Binding ParsingModel.ParsingProgress, Converter={StaticResource StringFormatConverter}, ConverterParameter='Progress: {0:F1}%'}"
                                Style="{StaticResource CaptionTextBlockStyle}"/>
                     
-                    <TextBlock Text="{Binding ParsingModel.GetDataCount, StringFormat='Data Points: {0}'}"
+                    <TextBlock Text="{Binding ParsingModel.GetDataCount, Converter={StaticResource StringFormatConverter}, ConverterParameter='Data Points: {0}'}"
                                Style="{StaticResource CaptionTextBlockStyle}"/>
                 </StackPanel>
 

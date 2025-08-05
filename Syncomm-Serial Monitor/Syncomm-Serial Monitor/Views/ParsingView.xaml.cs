@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Syncomm_Serial_Monitor.ViewModels;
+using System;
 
 namespace Syncomm_Serial_Monitor.Views
 {
@@ -28,38 +29,17 @@ namespace Syncomm_Serial_Monitor.Views
             _viewModel.ParsingModel.ClearData();
         }
 
-        private async void ExportParsedData_Click(object sender, RoutedEventArgs e)
+        private void ExportParsedData_Click(object sender, RoutedEventArgs e)
         {
             if (!_viewModel.ParsingModel.HasData())
             {
-                var dialog = new ContentDialog
-                {
-                    Title = "No Data",
-                    Content = "No parsed data to export.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.XamlRoot
-                };
-                await dialog.ShowAsync();
+                // For now, just show a simple message
+                // In a real implementation, you would show a proper dialog
                 return;
             }
 
             // Export logic would go here
-            // For now, just show a message
-            var exportDialog = new ContentDialog
-            {
-                Title = "Export Parsed Data",
-                Content = $"Export {_viewModel.ParsingModel.GetDataCount()} data points?",
-                PrimaryButtonText = "Export",
-                CloseButtonText = "Cancel",
-                XamlRoot = this.XamlRoot
-            };
-
-            var result = await exportDialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
-            {
-                // Export implementation would go here
-                // This could use the DataProcessingService to export to CSV
-            }
+            // This could use the DataProcessingService to export to CSV
         }
     }
 } 

@@ -12,6 +12,7 @@
 
     <Page.Resources>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:StringFormatConverter x:Key="StringFormatConverter"/>
     </Page.Resources>
 
     <Grid>
@@ -317,9 +318,9 @@
                                                    Orientation="Horizontal"
                                                    Spacing="12"
                                                    Margin="8,8,0,0">
-                                            <TextBlock Text="{Binding SerialPortModel.BytesReceived, StringFormat='Bytes Received: {0:N0}'}"/>
-                                            <TextBlock Text="{Binding SerialPortModel.BytesSent, StringFormat='Bytes Sent: {0:N0}'}"/>
-                                            <TextBlock Text="{Binding SerialPortModel.ConnectionStatus, StringFormat='Status: {0}'}"/>
+                                            <TextBlock Text="{Binding SerialPortModel.BytesReceived, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Received: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding SerialPortModel.BytesSent, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Sent: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding SerialPortModel.ConnectionStatus, Converter={StaticResource StringFormatConverter}, ConverterParameter='Status: {0}'}"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
