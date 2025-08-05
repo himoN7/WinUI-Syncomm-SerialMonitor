@@ -11,8 +11,8 @@
     Background="Transparent">
 
     <Page.Resources>
-        <converters:StringFormatConverter x:Key="StringFormatConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+        <converters:StringFormatConverter x:Key="StringFormatConverter"/>
     </Page.Resources>
 
     <Grid >
@@ -291,7 +291,7 @@
                                                                                Text="{Binding Timestamp}" 
                                                                                FontFamily="Consolas"/>
                                                                     <TextBlock Grid.Column="1" 
-                                                                               Text="{Binding Values, Converter={StaticResource StringFormatConverter}, ConverterParameter='{0}'}" 
+                                                                               Text="{Binding Values}" 
                                                                                FontFamily="Consolas"/>
                                                                 </Grid>
                                                             </DataTemplate>
