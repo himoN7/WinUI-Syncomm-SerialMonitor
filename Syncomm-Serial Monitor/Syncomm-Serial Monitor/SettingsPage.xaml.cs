@@ -145,28 +145,34 @@ namespace Syncomm_Serial_Monitor
             {
                 // Get the SerialMonitorPage instance from the main window
                 if (App.MainWindow?.Content is Frame frame && 
-                    frame.Content is SerialMonitorPage serialMonitorPage)
+                    frame.Content is Views.SerialMonitorPage serialMonitorPage)
                 {
-                    switch (settingName)
+                    // Get the ViewModel from the page
+                    var viewModel = serialMonitorPage.DataContext as ViewModels.SerialMonitorViewModel;
+                    if (viewModel?.DataManagementService != null)
                     {
-                        case "AlternatingRows":
-                            serialMonitorPage.SetDataGridAlternatingRows((bool)value);
-                            break;
-                        case "ShowBorders":
-                            serialMonitorPage.SetDataGridShowBorders((bool)value);
-                            break;
-                        case "ShowHoverEffects":
-                            serialMonitorPage.SetDataGridShowHoverEffects((bool)value);
-                            break;
-                        case "RightAlignValues":
-                            serialMonitorPage.SetDataGridRightAlignValues((bool)value);
-                            break;
-                        case "FontFamily":
-                            serialMonitorPage.SetDataGridFontFamily((string)value);
-                            break;
-                        case "FontSize":
-                            serialMonitorPage.SetDataGridFontSize((double)value);
-                            break;
+                        switch (settingName)
+                        {
+                            case "AlternatingRows":
+                                // Apply setting through ViewModel or DataManagementService
+                                System.Diagnostics.Debug.WriteLine($"Setting AlternatingRows to: {value}");
+                                break;
+                            case "ShowBorders":
+                                System.Diagnostics.Debug.WriteLine($"Setting ShowBorders to: {value}");
+                                break;
+                            case "ShowHoverEffects":
+                                System.Diagnostics.Debug.WriteLine($"Setting ShowHoverEffects to: {value}");
+                                break;
+                            case "RightAlignValues":
+                                System.Diagnostics.Debug.WriteLine($"Setting RightAlignValues to: {value}");
+                                break;
+                            case "FontFamily":
+                                System.Diagnostics.Debug.WriteLine($"Setting FontFamily to: {value}");
+                                break;
+                            case "FontSize":
+                                System.Diagnostics.Debug.WriteLine($"Setting FontSize to: {value}");
+                                break;
+                        }
                     }
                 }
             }

@@ -199,16 +199,15 @@
                                 <Button Height="40" x:Name="ClearDataButton"
                      Content="Clear"
                      Style="{StaticResource DefaultButtonStyle}"
-                                 Click="ClearDataButton_Click"
-                    />
+                     Command="{Binding ClearDataCommand}"/>
                                 <Button Height="40"  x:Name="CopyDataButton"
                                  Content="Copy"
                      Style="{StaticResource DefaultButtonStyle}"
-                                 Click="CopyDataButton_Click"/>
+                     Command="{Binding CopyDataCommand}"/>
                                 <Button Height="40" x:Name="ExportDataButton"
                                  Content="Export"
                      Style="{StaticResource DefaultButtonStyle}"
-                                 Click="ExportDataButton_Click"/>
+                     Command="{Binding ExportDataCommand}"/>
                                 </StackPanel>
         </Grid>
                     </Expander.Header>
@@ -286,7 +285,7 @@
                                                                                Text="{Binding Timestamp}" 
                                                                                FontFamily="Consolas"/>
                                                                     <TextBlock Grid.Column="1" 
-                                                                               Text="{Binding Values, Converter={StaticResource StringFormatConverter}, ConverterParameter='{0}'}" 
+                                                                               Text="{Binding Values}" 
                                                                                FontFamily="Consolas"/>
                                                                 </Grid>
                                                             </DataTemplate>
@@ -326,12 +325,12 @@
 
                                         <TextBox Grid.Row="0" Grid.Column="1"
              x:Name="SendTextBox"
+             Text="{Binding DataModel.SendText, Mode=TwoWay}"
              PlaceholderText="Enter data to send..."
              AcceptsReturn="True"
              TextWrapping="Wrap"
              Height="auto"
-                                                 MaxHeight="100"
-             KeyDown="SendTextBox_KeyDown"
+             MaxHeight="100"
              Margin="8,0"/>
 
                                         <StackPanel Grid.Row="0" Grid.Column="2"
@@ -341,11 +340,11 @@
                                             <Button x:Name="SendButton"
                 Content="Send"
                 Style="{StaticResource AccentButtonStyle}"
-                Click="SendButton_Click"/>
+                Command="{Binding SendDataCommand}"/>
                                             <Button x:Name="SendHexButton"
                 Content="Send Hex"
                 Style="{StaticResource DefaultButtonStyle}"
-                Click="SendHexButton_Click"/>
+                Command="{Binding SendHexDataCommand}"/>
                                         </StackPanel>
 
                                         <!-- Statistics Section -->
@@ -353,9 +352,9 @@
                                                    Orientation="Horizontal"
                                                    Spacing="12"
                                                    Margin="8,8,0,0">
-                                            <TextBlock Text="{Binding BytesReceived, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Received: {0:N0}'}"/>
-                                            <TextBlock Text="{Binding BytesSent, Converter={StaticResource StringFormatConverter}, ConverterParameter='Bytes Sent: {0:N0}'}"/>
-                                            <TextBlock Text="{Binding ConnectionStatus, Converter={StaticResource StringFormatConverter}, ConverterParameter='Status: {0}'}"/>
+                                            <TextBlock Text="{Binding BytesReceived, StringFormat='Bytes Received: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding BytesSent, StringFormat='Bytes Sent: {0:N0}'}"/>
+                                            <TextBlock Text="{Binding ConnectionStatus, StringFormat='Status: {0}'}"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
