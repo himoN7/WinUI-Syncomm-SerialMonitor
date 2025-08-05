@@ -769,6 +769,35 @@ namespace Syncomm_Serial_Monitor
                     }
                 }
 
+                // Send data to ViewModel
+                if (_viewModel != null)
+                {
+                    foreach (var row in newRows)
+                    {
+                        // Create ViewModel DataRow and DataGridRow
+                        var dataRow = new Models.DataRow
+                        {
+                            Timestamp = row.Timestamp,
+                            Data = string.Join(" ", row.Values)
+                        };
+                        
+                        var viewModelDataGridRow = new Models.DataGridRow
+                        {
+                            Timestamp = row.Timestamp,
+                            Values = new List<string>(row.Values)
+                        };
+                        
+                        // Add to ViewModel's collections
+                        _viewModel.DataModel.AllDataRows.Add(dataRow);
+                        _viewModel.DataModel.AllDataGridRows.Add(viewModelDataGridRow);
+                        _viewModel.DataModel.DataRows.Add(dataRow);
+                        _viewModel.DataModel.DataGridRows.Add(viewModelDataGridRow);
+                    }
+                    
+                    // Apply RowLimit to UI display
+                    _viewModel.DataModel.UpdateUIDisplay();
+                }
+
                 // Update the collections
                 lock (_dataGridRows)
                 {
@@ -871,6 +900,23 @@ namespace Syncomm_Serial_Monitor
             {
                 return null;
             }
+        }
+
+        private List<string> ParseLineToValues(string line)
+        {
+            var values = new List<string>();
+            var parts = line.Split(new[] { ' ', '\t', '\r', '\n', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var part in parts)
+            {
+                var trimmedPart = part.Trim();
+                if (!string.IsNullOrEmpty(trimmedPart))
+                {
+                    values.Add(trimmedPart);
+                }
+            }
+            
+            return values;
         }
 
         private void SyncCollectionsWithViewModel()
