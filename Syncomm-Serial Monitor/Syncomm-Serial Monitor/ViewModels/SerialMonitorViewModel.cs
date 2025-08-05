@@ -405,6 +405,27 @@ namespace Syncomm_Serial_Monitor.ViewModels
             {
                 ParsingModel.UpdateParsedData(e.Labels, e.NumericData, e.TimeStamps);
                 
+                // Create dynamic DataGridRow from parsed data
+                if (e.Labels.Count > 0 && e.NumericData.Count > 0)
+                {
+                    var dataGridRow = new DataGridRow
+                    {
+                        Timestamp = DateTime.Now.ToString("HH:mm:ss.fff"),
+                        Labels = e.Labels,
+                        Values = e.NumericData.Select(d => d.ToString("F2")).ToList()
+                    };
+                    
+                    // Add to DataModel for display
+                    DataModel.DataGridRows.Add(dataGridRow);
+                    DataModel.AllDataRows.Add(dataGridRow);
+                    
+                    // Keep only last rows based on RowLimit for performance
+                    while (DataModel.DataGridRows.Count > DataModel.RowLimit)
+                    {
+                        DataModel.DataGridRows.RemoveAt(0);
+                    }
+                }
+                
                 if (ParsingModel.HasData())
                 {
                     ShowNotification($"Parsed {ParsingModel.GetDataCount()} data points", "Success");

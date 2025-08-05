@@ -55,12 +55,46 @@ namespace Syncomm_Serial_Monitor.Services
                 dataGridRow.Timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
             }
             
-            // Parse data into values
-            var parts = data.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var part in parts)
+            // Parse data into values dynamically
+            var parts = data.Split(new[] { ' ', '\t', '\r', '\n', ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            // Try to identify labels and values
+            var labels = new List<string>();
+            var values = new List<string>();
+            
+            for (int i = 0; i < parts.Length; i++)
             {
-                dataGridRow.Values.Add(part);
+                var part = parts[i].Trim();
+                
+                // Check if it's a numeric value
+                if (_mainSymbols.IsMatch(part))
+                {
+                    values.Add(part);
+                    // If we have a previous part that's not numeric, it might be a label
+                    if (i > 0 && !_mainSymbols.IsMatch(parts[i - 1]))
+                    {
+                        labels.Add(parts[i - 1]);
+                    }
+                    else if (labels.Count < values.Count)
+                    {
+                        labels.Add($"Value {values.Count}");
+                    }
+                }
+                else if (_alphanumericSymbols.IsMatch(part))
+                {
+                    // This might be a label
+                    labels.Add(part);
+                }
             }
+            
+            // Ensure we have labels for all values
+            while (labels.Count < values.Count)
+            {
+                labels.Add($"Column {labels.Count + 1}");
+            }
+            
+            dataGridRow.Labels = labels;
+            dataGridRow.Values = values;
             
             return dataGridRow;
         }

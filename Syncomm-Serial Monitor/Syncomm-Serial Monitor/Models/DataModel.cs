@@ -103,15 +103,32 @@ namespace Syncomm_Serial_Monitor.Models
     {
         public string Timestamp { get; set; } = "";
         public List<string> Values { get; set; } = new List<string>();
+        public List<string> Labels { get; set; } = new List<string>();
         
-        // For backward compatibility
-        public string Value1 { get => Values.Count > 0 ? Values[0] : ""; set { if (Values.Count > 0) Values[0] = value; else Values.Add(value); } }
-        public string Value2 { get => Values.Count > 1 ? Values[1] : ""; set { if (Values.Count > 1) Values[1] = value; else Values.Add(value); } }
-        public string Value3 { get => Values.Count > 2 ? Values[2] : ""; set { if (Values.Count > 2) Values[2] = value; else Values.Add(value); } }
-        public string Value4 { get => Values.Count > 3 ? Values[3] : ""; set { if (Values.Count > 3) Values[3] = value; else Values.Add(value); } }
-        public string Value5 { get => Values.Count > 4 ? Values[4] : ""; set { if (Values.Count > 4) Values[4] = value; else Values.Add(value); } }
-        public string Value6 { get => Values.Count > 5 ? Values[5] : ""; set { if (Values.Count > 5) Values[5] = value; else Values.Add(value); } }
-        public string Value7 { get => Values.Count > 6 ? Values[6] : ""; set { if (Values.Count > 6) Values[6] = value; else Values.Add(value); } }
-        public string Value8 { get => Values.Count > 7 ? Values[7] : ""; set { if (Values.Count > 7) Values[7] = value; else Values.Add(value); } }
+        // Dynamic property access for backward compatibility
+        public string GetValue(int index) => index < Values.Count ? Values[index] : "";
+        public string GetLabel(int index) => index < Labels.Count ? Labels[index] : $"Column {index + 1}";
+        
+        // For backward compatibility - now dynamic
+        public string Value1 { get => GetValue(0); set { SetValue(0, value); } }
+        public string Value2 { get => GetValue(1); set { SetValue(1, value); } }
+        public string Value3 { get => GetValue(2); set { SetValue(2, value); } }
+        public string Value4 { get => GetValue(3); set { SetValue(3, value); } }
+        public string Value5 { get => GetValue(4); set { SetValue(4, value); } }
+        public string Value6 { get => GetValue(5); set { SetValue(5, value); } }
+        public string Value7 { get => GetValue(6); set { SetValue(6, value); } }
+        public string Value8 { get => GetValue(7); set { SetValue(7, value); } }
+        
+        private void SetValue(int index, string value)
+        {
+            while (Values.Count <= index)
+            {
+                Values.Add("");
+            }
+            Values[index] = value;
+        }
+        
+        // Dynamic column count
+        public int ColumnCount => Math.Max(Values.Count, Labels.Count);
     }
 } 
