@@ -455,7 +455,7 @@ namespace Syncomm_Serial_Monitor
 
         private void UpdateDisplayFromBuffer()
         {
-            if (isPaused) return;
+            if (isPaused || !isConnected) return;
 
             // Since we're now using DataManagementService directly, 
             // we only need to trigger UI updates from the service
@@ -475,6 +475,9 @@ namespace Syncomm_Serial_Monitor
 
         private void UpdateDisplayText()
         {
+            // Don't update UI if disconnected
+            if (!isConnected) return;
+            
             // This method will be called from the UI thread
             // For DataGrid, we use DataManagementService directly
             // For other displays, we can still use _displayBuffer if needed
@@ -788,7 +791,7 @@ namespace Syncomm_Serial_Monitor
 
         private void UpdateDataGrid(string currentText)
         {
-            if (!IsDataGridEnabled()) return;
+            if (!IsDataGridEnabled() || !isConnected) return;
 
             try
             {
@@ -1504,34 +1507,34 @@ namespace Syncomm_Serial_Monitor
 
         private async Task OptimizeForConnection()
         {
-            _connectionStartTime = DateTime.Now;
-            
-            // Pre-warm the processing pipeline for first connection
-            if (_processingTask == null || _processingTask.IsCompleted)
+            try
             {
-                StartBackgroundProcessing();
-                await Task.Delay(50); // Give background task time to start
+                // Start the UI update timer
+                if (_uiUpdateTimer != null)
+                {
+                    _uiUpdateTimer.Start();
+                }
+                
+                // Reset data grid update timer
+                _lastDataGridUpdate = DateTime.MinValue;
+                
+                // Clear any stale data
+                if (_dataManagementService != null)
+                {
+                    _dataManagementService.ClearData();
+                }
+                
+                // Update UI
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    UpdateConnectionState();
+                    UpdateConnectionToggleUI();
+                    UpdateStatistics();
+                });
             }
-            
-            // Pre-allocate additional buffers for first connection
-            if (_processingBuffer.Capacity < 20000)
+            catch (Exception ex)
             {
-                _processingBuffer = new StringBuilder(20000);
-                _displayBuffer = new StringBuilder(20000);
-            }
-            
-            // Warm up the UI update timer
-            if (_uiUpdateTimer == null || !_uiUpdateTimer.IsEnabled)
-            {
-                InitializeSmoothProcessing();
-            }
-            
-            // Log performance for first connection
-            if (_isFirstConnection)
-            {
-                var warmupTime = DateTime.Now - _connectionStartTime;
-                System.Diagnostics.Debug.WriteLine($"First connection warmup time: {warmupTime.TotalMilliseconds}ms");
-                _isFirstConnection = false;
+                DispatcherQueue.TryEnqueue(() => ShowInfoBar($"Connection optimization error: {ex.Message}", InfoBarSeverity.Error));
             }
         }
 
@@ -1541,6 +1544,32 @@ namespace Syncomm_Serial_Monitor
         {
             try
             {
+                // Immediately stop all processing
+                isConnected = false;
+                _isConnected = false;
+                
+                // Stop the UI update timer
+                if (_uiUpdateTimer != null)
+                {
+                    _uiUpdateTimer.Stop();
+                }
+                
+                // Clear the data management service to stop all processing
+                if (_dataManagementService != null)
+                {
+                    _dataManagementService.ClearData();
+                }
+                
+                // Reset data grid update timer to prevent stale updates
+                _lastDataGridUpdate = DateTime.MinValue;
+                
+                // Clear all buffers to prevent stale data
+                lock (_bufferLock)
+                {
+                    _serialInputBuffer.Clear();
+                }
+                
+                // Close the serial port
                 if (_serialPort != null && _serialPort.IsOpen)
                 {
                     _serialPort.Close();
@@ -1548,13 +1577,7 @@ namespace Syncomm_Serial_Monitor
                     _serialPort = null;
                 }
                 
-                isConnected = false;
-                _isConnected = false;
-                
-                // Reset data grid update timer to prevent stale updates
-                _lastDataGridUpdate = DateTime.MinValue;
-                
-                // Update UI
+                // Update UI on dispatcher thread
                 DispatcherQueue.TryEnqueue(() =>
                 {
                     UpdateConnectionState();

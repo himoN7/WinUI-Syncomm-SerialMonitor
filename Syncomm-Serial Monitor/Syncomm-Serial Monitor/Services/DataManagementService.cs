@@ -106,8 +106,30 @@ namespace Syncomm_Serial_Monitor.Services
                 var trimmedPart = part.Trim();
                 if (!string.IsNullOrEmpty(trimmedPart))
                 {
-                    values.Add(trimmedPart);
+                    // Validate that the part is a valid number or expected format
+                    if (double.TryParse(trimmedPart, out _) || trimmedPart.Contains("."))
+                    {
+                        values.Add(trimmedPart);
+                    }
+                    else
+                    {
+                        // If it's not a valid number, add it but log for debugging
+                        System.Diagnostics.Debug.WriteLine($"Non-numeric value found: '{trimmedPart}' in data: '{data}'");
+                        values.Add(trimmedPart);
+                    }
                 }
+            }
+            
+            // Ensure we have exactly 8 values (pad with "0" if needed)
+            while (values.Count < 8)
+            {
+                values.Add("0");
+            }
+            
+            // If we have more than 8 values, truncate to 8
+            if (values.Count > 8)
+            {
+                values = values.Take(8).ToList();
             }
             
             return values;
