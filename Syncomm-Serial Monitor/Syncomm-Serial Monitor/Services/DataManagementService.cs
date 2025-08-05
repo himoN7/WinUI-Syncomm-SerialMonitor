@@ -26,8 +26,8 @@ namespace Syncomm_Serial_Monitor.Services
         
         // Configuration
         private int _displayRowLimit = 50; // Show only last 50 rows in UI
-        private int _batchSize = 25; // Larger batch for better performance
-        private int _updateIntervalMs = 100; // Slower UI updates to prevent freezing
+        private int _batchSize = 50; // Larger batch for better performance under high load
+        private int _updateIntervalMs = 50; // Faster processing to keep up with data rate
         
         // Performance monitoring
         private long _totalBytesReceived = 0;
@@ -64,6 +64,7 @@ namespace Syncomm_Serial_Monitor.Services
         
         public long TotalBytesReceived => _totalBytesReceived;
         public long TotalRowsProcessed => _totalRowsProcessed;
+        public int QueueCount => _dataQueue.Count;
         
         public void AddData(DataGridRow dataRow)
         {
@@ -74,6 +75,9 @@ namespace Syncomm_Serial_Monitor.Services
             
             // Update statistics
             Interlocked.Increment(ref _totalRowsProcessed);
+            
+            // Handle queue overflow if needed
+            HandleQueueOverflow();
         }
         
         public void AddData(string data, bool includeTimestamp = true)
@@ -91,6 +95,9 @@ namespace Syncomm_Serial_Monitor.Services
             
             // Update statistics
             Interlocked.Increment(ref _totalRowsProcessed);
+            
+            // Handle queue overflow if needed
+            HandleQueueOverflow();
         }
         
         private List<string> ParseDataValues(string data)
@@ -106,30 +113,8 @@ namespace Syncomm_Serial_Monitor.Services
                 var trimmedPart = part.Trim();
                 if (!string.IsNullOrEmpty(trimmedPart))
                 {
-                    // Validate that the part is a valid number or expected format
-                    if (double.TryParse(trimmedPart, out _) || trimmedPart.Contains("."))
-                    {
-                        values.Add(trimmedPart);
-                    }
-                    else
-                    {
-                        // If it's not a valid number, add it but log for debugging
-                        System.Diagnostics.Debug.WriteLine($"Non-numeric value found: '{trimmedPart}' in data: '{data}'");
-                        values.Add(trimmedPart);
-                    }
+                    values.Add(trimmedPart);
                 }
-            }
-            
-            // Ensure we have exactly 8 values (pad with "0" if needed)
-            while (values.Count < 8)
-            {
-                values.Add("0");
-            }
-            
-            // If we have more than 8 values, truncate to 8
-            if (values.Count > 8)
-            {
-                values = values.Take(8).ToList();
             }
             
             return values;
@@ -163,14 +148,16 @@ namespace Syncomm_Serial_Monitor.Services
         {
             var batch = new List<DataGridRow>();
             
-            // Collect data from queue with timeout to prevent blocking
+            // Collect data from queue with longer timeout to process more data
             var startTime = DateTime.Now;
+            var maxProcessingTime = 50; // Increased from 10ms to 50ms
+            
             while (batch.Count < _batchSize && _dataQueue.TryDequeue(out var dataRow))
             {
                 batch.Add(dataRow);
                 
-                // Prevent infinite loop - timeout after 10ms
-                if ((DateTime.Now - startTime).TotalMilliseconds > 10)
+                // Prevent infinite loop - timeout after 50ms
+                if ((DateTime.Now - startTime).TotalMilliseconds > maxProcessingTime)
                     break;
             }
             
@@ -195,14 +182,18 @@ namespace Syncomm_Serial_Monitor.Services
                 }
             }
             
-            // Update UI on the dispatcher thread
+            // Update UI on the dispatcher thread with better error handling
             _dispatcherQueue.TryEnqueue(() =>
             {
                 try
                 {
+                    // Add all rows at once to reduce UI updates
                     foreach (var row in batch)
                     {
-                        DisplayRows.Add(row);
+                        if (row != null && !string.IsNullOrEmpty(row.Timestamp))
+                        {
+                            DisplayRows.Add(row);
+                        }
                     }
                     
                     // Keep only the last N rows for display
@@ -283,6 +274,23 @@ namespace Syncomm_Serial_Monitor.Services
         public void UpdateBytesReceived(int bytes)
         {
             Interlocked.Add(ref _totalBytesReceived, bytes);
+        }
+        
+        public void HandleQueueOverflow()
+        {
+            // If queue is getting too large, process more aggressively
+            if (_dataQueue.Count > 1000)
+            {
+                // Increase batch size temporarily
+                var originalBatchSize = _batchSize;
+                _batchSize = Math.Min(100, _batchSize * 2);
+                
+                // Process a larger batch immediately
+                Task.Run(async () => await ProcessDataBatch());
+                
+                // Reset batch size after processing
+                _batchSize = originalBatchSize;
+            }
         }
         
         public void ForceUIUpdate()

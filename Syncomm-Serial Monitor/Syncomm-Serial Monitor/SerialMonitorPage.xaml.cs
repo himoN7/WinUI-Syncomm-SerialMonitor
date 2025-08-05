@@ -77,7 +77,7 @@ namespace Syncomm_Serial_Monitor
         private DateTime _connectionStartTime;
         private bool _isFirstConnection = true;
         private DateTime _lastDataGridUpdate = DateTime.MinValue;
-        private const int DATA_GRID_UPDATE_INTERVAL_MS = 200; // Update data grid every 200ms
+        private const int DATA_GRID_UPDATE_INTERVAL_MS = 100; // Reduced from 200ms to 100ms for better responsiveness
 
         // Performance optimizations for first connection
         private bool _isFirstDataUpdate = true;
@@ -455,7 +455,7 @@ namespace Syncomm_Serial_Monitor
 
         private void UpdateDisplayFromBuffer()
         {
-            if (isPaused || !isConnected) return;
+            if (isPaused) return;
 
             // Since we're now using DataManagementService directly, 
             // we only need to trigger UI updates from the service
@@ -475,9 +475,6 @@ namespace Syncomm_Serial_Monitor
 
         private void UpdateDisplayText()
         {
-            // Don't update UI if disconnected
-            if (!isConnected) return;
-            
             // This method will be called from the UI thread
             // For DataGrid, we use DataManagementService directly
             // For other displays, we can still use _displayBuffer if needed
@@ -791,7 +788,7 @@ namespace Syncomm_Serial_Monitor
 
         private void UpdateDataGrid(string currentText)
         {
-            if (!IsDataGridEnabled() || !isConnected) return;
+            if (!IsDataGridEnabled()) return;
 
             try
             {
@@ -1507,34 +1504,34 @@ namespace Syncomm_Serial_Monitor
 
         private async Task OptimizeForConnection()
         {
-            try
+            _connectionStartTime = DateTime.Now;
+            
+            // Pre-warm the processing pipeline for first connection
+            if (_processingTask == null || _processingTask.IsCompleted)
             {
-                // Start the UI update timer
-                if (_uiUpdateTimer != null)
-                {
-                    _uiUpdateTimer.Start();
-                }
-                
-                // Reset data grid update timer
-                _lastDataGridUpdate = DateTime.MinValue;
-                
-                // Clear any stale data
-                if (_dataManagementService != null)
-                {
-                    _dataManagementService.ClearData();
-                }
-                
-                // Update UI
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    UpdateConnectionState();
-                    UpdateConnectionToggleUI();
-                    UpdateStatistics();
-                });
+                StartBackgroundProcessing();
+                await Task.Delay(50); // Give background task time to start
             }
-            catch (Exception ex)
+            
+            // Pre-allocate additional buffers for first connection
+            if (_processingBuffer.Capacity < 20000)
             {
-                DispatcherQueue.TryEnqueue(() => ShowInfoBar($"Connection optimization error: {ex.Message}", InfoBarSeverity.Error));
+                _processingBuffer = new StringBuilder(20000);
+                _displayBuffer = new StringBuilder(20000);
+            }
+            
+            // Warm up the UI update timer
+            if (_uiUpdateTimer == null || !_uiUpdateTimer.IsEnabled)
+            {
+                InitializeSmoothProcessing();
+            }
+            
+            // Log performance for first connection
+            if (_isFirstConnection)
+            {
+                var warmupTime = DateTime.Now - _connectionStartTime;
+                System.Diagnostics.Debug.WriteLine($"First connection warmup time: {warmupTime.TotalMilliseconds}ms");
+                _isFirstConnection = false;
             }
         }
 
@@ -1544,32 +1541,6 @@ namespace Syncomm_Serial_Monitor
         {
             try
             {
-                // Immediately stop all processing
-                isConnected = false;
-                _isConnected = false;
-                
-                // Stop the UI update timer
-                if (_uiUpdateTimer != null)
-                {
-                    _uiUpdateTimer.Stop();
-                }
-                
-                // Clear the data management service to stop all processing
-                if (_dataManagementService != null)
-                {
-                    _dataManagementService.ClearData();
-                }
-                
-                // Reset data grid update timer to prevent stale updates
-                _lastDataGridUpdate = DateTime.MinValue;
-                
-                // Clear all buffers to prevent stale data
-                lock (_bufferLock)
-                {
-                    _serialInputBuffer.Clear();
-                }
-                
-                // Close the serial port
                 if (_serialPort != null && _serialPort.IsOpen)
                 {
                     _serialPort.Close();
@@ -1577,7 +1548,16 @@ namespace Syncomm_Serial_Monitor
                     _serialPort = null;
                 }
                 
-                // Update UI on dispatcher thread
+                isConnected = false;
+                _isConnected = false;
+                
+                // Reset data grid update timer to prevent stale updates
+                _lastDataGridUpdate = DateTime.MinValue;
+                
+                // Clear any pending data in the management service
+                _dataManagementService?.ClearData();
+                
+                // Update UI
                 DispatcherQueue.TryEnqueue(() =>
                 {
                     UpdateConnectionState();
@@ -1617,6 +1597,7 @@ namespace Syncomm_Serial_Monitor
                     
                     // Update statistics at consistent intervals
                     if (bytesReceived % 5000 == 0) // Update every 5000 bytes consistently
+                    
                     {
                         DispatcherQueue.TryEnqueue(() => UpdateStatistics());
                     }
@@ -2273,14 +2254,15 @@ namespace Syncomm_Serial_Monitor
             // Use the optimized service for statistics
             var totalBytesReceived = _dataManagementService?.TotalBytesReceived ?? bytesReceived;
             var totalRowsProcessed = _dataManagementService?.TotalRowsProcessed ?? 0;
+            var queueCount = _dataManagementService?.QueueCount ?? 0;
             
             BytesReceivedText.Text = $"Bytes Received: {totalBytesReceived:N0}";
             BytesSentText.Text = $"Bytes Sent: {bytesSent:N0}";
             
-            // Update connection status with additional info
+            // Update connection status with additional info including queue status
             var displayCount = _dataManagementService?.GetDisplayRowCount() ?? 0;
             var totalCount = _dataManagementService?.GetTotalRowCount() ?? 0;
-            ConnectionStatusText.Text = $"Status: {(isConnected ? "Connected" : "Disconnected")} | Display: {displayCount} | Total: {totalCount}";
+            ConnectionStatusText.Text = $"Status: {(isConnected ? "Connected" : "Disconnected")} | Display: {displayCount} | Total: {totalCount} | Queue: {queueCount}";
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
