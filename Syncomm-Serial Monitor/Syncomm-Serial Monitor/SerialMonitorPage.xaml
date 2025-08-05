@@ -179,8 +179,8 @@ HorizontalContentAlignment="Center"
                              
 
                                 <StackPanel Grid.Column="2" Spacing="5" Orientation="Horizontal">
-                                <TextBlock Text="Auto scroll" HorizontalAlignment="Center" HorizontalTextAlignment="Center" VerticalAlignment="Center"/>
-                                <ToggleSwitch x:Name="DataGridAutoScrollToggle"
+                                <TextBlock Visibility="Collapsed" Text="Auto scroll" HorizontalAlignment="Center" HorizontalTextAlignment="Center" VerticalAlignment="Center"/>
+                                <ToggleSwitch Visibility="Collapsed" x:Name="DataGridAutoScrollToggle"
                            
                               IsOn="True"
                               Margin="8,4"/>
@@ -189,8 +189,7 @@ HorizontalContentAlignment="Center"
  Content="Enable DataGrid" 
  IsChecked="True" 
  Margin="8,4"/>
-                                <NumberBox x:Name="UpdateIntervalNumberBox" Value="100" Minimum="50" Maximum="5000" SpinButtonPlacementMode="Inline" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Height="40"
-/>
+
                                 <Button Height="40" x:Name="ClearDataButton"
                      Content="Clear"
                      Style="{StaticResource DefaultButtonStyle}"
@@ -259,7 +258,7 @@ HorizontalContentAlignment="Center"
                                                              HorizontalScrollMode="Enabled"
                                                              HorizontalAlignment="Stretch"
                                                              VerticalAlignment="Stretch"
-                                                             Height="400"
+                                                             Height="450"
                                                              IsScrollInertiaEnabled="True"
                                                              IsVerticalScrollChainingEnabled="True"
                                                              IsHorizontalScrollChainingEnabled="True"
@@ -267,7 +266,8 @@ HorizontalContentAlignment="Center"
                                                              ViewChanged="DataGridScrollViewer_ViewChanged"
                                                              x:Name="DataGridScrollViewer">
                                                     <Grid x:Name="DataDataGrid"
-                                                          HorizontalAlignment="Stretch"
+                                                          
+                                                          HorizontalAlignment="Center"
                                                           VerticalAlignment="Top">
                                                         <!-- Grid content will be populated dynamically -->
                                                     </Grid>

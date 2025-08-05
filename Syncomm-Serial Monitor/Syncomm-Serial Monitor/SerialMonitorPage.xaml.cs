@@ -19,6 +19,7 @@ using Windows.Storage.Streams;
 using System.Threading;
 using System.Collections.Concurrent;
 using Syncomm_Serial_Monitor.ViewModels;
+using Syncomm_Serial_Monitor.Services;
 
 namespace Syncomm_Serial_Monitor
 {
@@ -75,6 +76,8 @@ namespace Syncomm_Serial_Monitor
         // Performance monitoring
         private DateTime _connectionStartTime;
         private bool _isFirstConnection = true;
+        private DateTime _lastDataGridUpdate = DateTime.MinValue;
+        private const int DATA_GRID_UPDATE_INTERVAL_MS = 200; // Update data grid every 200ms
 
         // Performance optimizations for first connection
         private bool _isFirstDataUpdate = true;
@@ -120,6 +123,9 @@ namespace Syncomm_Serial_Monitor
         private readonly object _allDataLock = new object();
         private bool _isConnected = false;
         
+        // Optimized data management service
+        private DataManagementService _dataManagementService;
+        
         private StringBuilder _textBlockContent = new StringBuilder();
         private bool _listViewInitialized = false;
         private bool _dataGridInitialized = false;
@@ -143,6 +149,9 @@ namespace Syncomm_Serial_Monitor
             // Initialize ViewModel
             _viewModel = new SerialMonitorViewModel();
             this.DataContext = _viewModel;
+            
+            // Initialize optimized data management service
+            _dataManagementService = new DataManagementService(this.DispatcherQueue);
             
             // Initialize UI components
             InitializeListView();
@@ -327,6 +336,9 @@ namespace Syncomm_Serial_Monitor
             
             // Clean up timers
             _uiUpdateTimer?.Stop();
+            
+            // Dispose of the data management service
+            _dataManagementService?.Dispose();
         }
 
         private void InitializeSmoothProcessing()
@@ -374,6 +386,13 @@ namespace Syncomm_Serial_Monitor
                 transmissions.Add(transmission);
             }
             
+            // Also process data from the main data queue
+            while (_dataQueue.TryDequeue(out string data))
+            {
+                // Process data with enhanced break detection on background thread
+                ProcessIncomingDataWithBreakDetectionAsync(data);
+            }
+            
             if (transmissions.Count > 0)
             {
                 // Process in background thread
@@ -404,54 +423,77 @@ namespace Syncomm_Serial_Monitor
             _transmissionQueue.Enqueue(transmission);
         }
 
+        private void ProcessCompleteTransmissionAsync(string transmission)
+        {
+            if (string.IsNullOrEmpty(transmission.Trim())) return;
+            
+            // Process directly using the optimized data management service
+            var processedData = ProcessAndFormatData(transmission);
+            if (!string.IsNullOrEmpty(processedData))
+            {
+                // Add to data management service for optimized processing
+                _dataManagementService.AddData(processedData, _timestampEnabled);
+                
+                // No need to update _processingBuffer since DataManagementService handles UI updates
+            }
+        }
+
         private void UiUpdateTimer_Tick(object sender, object e)
         {
-            // Only update if there's data to display
-            if (_processingBuffer.Length > 0 || _displayBuffer.Length > 0)
-            {
-                // Update display from buffer on UI thread
-                UpdateDisplayFromBuffer();
-            }
+            // Always trigger UI updates to ensure DataManagementService updates are reflected
+            UpdateDisplayFromBuffer();
             
             // Also check for any stuck data in the serial buffer
             CheckForStuckData();
+            
+            // Update statistics at consistent intervals
+            if (bytesReceived % 5000 == 0) // Update every 5000 bytes consistently
+            {
+                UpdateStatistics();
+            }
         }
 
         private void UpdateDisplayFromBuffer()
         {
             if (isPaused) return;
 
-            lock (updateLock)
+            // Since we're now using DataManagementService directly, 
+            // we only need to trigger UI updates from the service
+            DispatcherQueue.TryEnqueue(() =>
             {
-                if (_processingBuffer.Length > 0)
+                try
                 {
-                    // Append to display buffer
-                    _displayBuffer.Append(_processingBuffer.ToString());
-                    _processingBuffer.Clear();
-                    
-                    // Update UI on main thread with batching
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        try
-                        {
-                            UpdateDisplayText();
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log error but don't block processing
-                            System.Diagnostics.Debug.WriteLine($"UI update error: {ex.Message}");
-                        }
-                    });
+                    UpdateDisplayText();
                 }
-            }
+                catch (Exception ex)
+                {
+                    // Log error but don't block processing
+                    System.Diagnostics.Debug.WriteLine($"UI update error: {ex.Message}");
+                }
+            });
         }
 
         private void UpdateDisplayText()
         {
             // This method will be called from the UI thread
+            // For DataGrid, we use DataManagementService directly
+            // For other displays, we can still use _displayBuffer if needed
+            
+            if (IsDataGridEnabled())
+            {
+                // Throttle data grid updates to prevent laggy behavior
+                var timeSinceLastUpdate = DateTime.Now - _lastDataGridUpdate;
+                if (timeSinceLastUpdate.TotalMilliseconds >= DATA_GRID_UPDATE_INTERVAL_MS)
+                {
+                    // DataGrid uses DataManagementService directly, no need for currentText
+                    UpdateDataGrid("");
+                    _lastDataGridUpdate = DateTime.Now;
+                }
+            }
+            
+            // For other display methods, we can still use _displayBuffer if it has content
             string currentText = _displayBuffer.ToString();
             
-            // Update enabled display methods for comparison
             if (IsTextBoxEnabled())
                 UpdateTextBox(currentText);
             
@@ -460,9 +502,6 @@ namespace Syncomm_Serial_Monitor
             
             if (IsListViewEnabled())
                 UpdateListView(currentText);
-            
-            if (IsDataGridEnabled())
-                UpdateDataGrid(currentText);
             
             if (IsItemRepeaterEnabled())
                 UpdateItemRepeater(currentText);
@@ -753,107 +792,55 @@ namespace Syncomm_Serial_Monitor
 
             try
             {
-                var dataGrid = this.FindName("DataDataGrid") as Grid;
-                if (dataGrid == null) return;
-
-                // Parse the current text into DataGrid rows
-                var lines = currentText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                var newRows = new List<DataGridRow>();
-
-                foreach (var line in lines)
-                {
-                    var dataGridRow = ParseLineToDataGridRow(line);
-                    if (dataGridRow != null)
-                    {
-                        newRows.Add(dataGridRow);
-                    }
-                }
-
-                // Send data to ViewModel
-                if (_viewModel != null)
-                {
-                    foreach (var row in newRows)
-                    {
-                        // Create ViewModel DataRow and DataGridRow
-                        var dataRow = new Models.DataRow
-                        {
-                            Timestamp = row.Timestamp,
-                            Data = string.Join(" ", row.Values)
-                        };
-                        
-                        var viewModelDataGridRow = new Models.DataGridRow
-                        {
-                            Timestamp = row.Timestamp,
-                            Values = new List<string>(row.Values)
-                        };
-                        
-                        // Add to ViewModel's collections
-                        _viewModel.DataModel.AllDataRows.Add(dataRow);
-                        _viewModel.DataModel.AllDataGridRows.Add(viewModelDataGridRow);
-                        _viewModel.DataModel.DataRows.Add(dataRow);
-                        _viewModel.DataModel.DataGridRows.Add(viewModelDataGridRow);
-                    }
-                    
-                    // Apply RowLimit to UI display
-                    _viewModel.DataModel.UpdateUIDisplay();
-                }
-
-                // Update the collections
-                lock (_dataGridRows)
-                {
-                    // Add new rows to display collection
-                    foreach (var row in newRows)
-                    {
-                        // Check if this row already exists to avoid duplicates
-                        if (!_dataGridRows.Any(existing => existing.Timestamp == row.Timestamp))
-                        {
-                            _dataGridRows.Add(row);
-                        }
-                    }
-
-                    // Keep only the last rows based on ViewModel's RowLimit
-                    while (_dataGridRows.Count > _viewModel.DataModel.RowLimit)
-                    {
-                        _dataGridRows.RemoveAt(0);
-                    }
-                }
-
-                // Store ALL rows in complete data collection
-                lock (_allDataLock)
-                {
-                    foreach (var row in newRows)
-                    {
-                        // Check if this row already exists to avoid duplicates
-                        if (!_allDataRows.Any(existing => existing.Timestamp == row.Timestamp))
-                        {
-                            _allDataRows.Add(row);
-                        }
-                    }
-                }
-
-                // Update the grid content
+                // Use the optimized data management service directly
+                // No need to parse currentText since DataManagementService already handles the data
                 DispatcherQueue.TryEnqueue(() =>
                 {
-                    // Sync local collections with ViewModel
-                    SyncCollectionsWithViewModel();
-                    
-                    UpdateDataGridContent(dataGrid, _dataGridRows);
-                    
-                    // Auto-scroll to bottom if enabled
-                    if (_dataGridAutoScrollEnabled)
+                    try
                     {
-                        var scrollViewer = this.FindName("DataGridScrollViewer") as ScrollViewer;
-                        if (scrollViewer != null)
+                        var dataGrid = this.FindName("DataDataGrid") as Grid;
+                        if (dataGrid != null && _dataManagementService != null)
                         {
-                            // Use a small delay to ensure the grid content is updated before scrolling
-                            Task.Delay(10).ContinueWith(_ =>
+                            // Only update if there are actual rows to display
+                            var displayRows = _dataManagementService.DisplayRows;
+                            if (displayRows != null && displayRows.Count > 0)
                             {
-                                DispatcherQueue.TryEnqueue(() =>
+                                // Convert Models.DataGridRow to local DataGridRow for display
+                                var localDisplayRows = new ObservableCollection<DataGridRow>();
+                                foreach (var modelRow in displayRows)
                                 {
-                                    scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null);
-                                });
-                            });
+                                    if (modelRow != null && !string.IsNullOrEmpty(modelRow.Timestamp))
+                                    {
+                                        var localRow = new DataGridRow
+                                        {
+                                            Timestamp = modelRow.Timestamp,
+                                            Values = new List<string>(modelRow.Values)
+                                        };
+                                        localDisplayRows.Add(localRow);
+                                    }
+                                }
+                                
+                                // Only update if we have valid rows
+                                if (localDisplayRows.Count > 0)
+                                {
+                                    UpdateDataGridContent(dataGrid, localDisplayRows);
+                                }
+                            }
                         }
+                        
+                        // Auto-scroll to bottom if enabled
+                        if (_dataGridAutoScrollEnabled)
+                        {
+                            var scrollViewer = this.FindName("DataGridScrollViewer") as ScrollViewer;
+                            if (scrollViewer != null)
+                            {
+                                scrollViewer.ChangeView(null, scrollViewer.ScrollableHeight, null);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"UI update error: {ex.Message}");
                     }
                 });
             }
@@ -1484,6 +1471,9 @@ namespace Syncomm_Serial_Monitor
                                 }
                             }
                         }
+                        
+                        // Force UI update to ensure display is refreshed
+                        _dataManagementService.ForceUIUpdate();
 
                         UpdateConnectionState();
                         ShowInfoBar($"Connected to {selectedPort}", InfoBarSeverity.Success);
@@ -1557,22 +1547,24 @@ namespace Syncomm_Serial_Monitor
                     _serialPort.Dispose();
                     _serialPort = null;
                 }
-
+                
                 isConnected = false;
                 _isConnected = false;
                 
-                // Show all data when disconnected
-                ShowAllDataWhenDisconnected();
+                // Reset data grid update timer to prevent stale updates
+                _lastDataGridUpdate = DateTime.MinValue;
                 
-                UpdateConnectionState();
-                ShowInfoBar("Serial port disconnected", InfoBarSeverity.Informational);
+                // Update UI
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    UpdateConnectionState();
+                    UpdateConnectionToggleUI();
+                    UpdateStatistics();
+                });
             }
             catch (Exception ex)
             {
-                ShowInfoBar($"Error disconnecting: {ex.Message}", InfoBarSeverity.Error);
-                // Ensure toggle button is unchecked on error
-                ConnectionToggleButton.IsChecked = false;
-                UpdateConnectionState();
+                DispatcherQueue.TryEnqueue(() => ShowInfoBar($"Disconnect error: {ex.Message}", InfoBarSeverity.Error));
             }
         }
 
@@ -1594,13 +1586,17 @@ namespace Syncomm_Serial_Monitor
                 if (!string.IsNullOrEmpty(data))
                 {
                     bytesReceived += data.Length;
+                    _dataManagementService.UpdateBytesReceived(data.Length);
                     _lastDataReceived = DateTime.Now;
                     
-                    // Process data with enhanced break detection
-                    ProcessIncomingDataWithBreakDetection(data);
+                    // Process data immediately for UI updates (but on background thread)
+                    Task.Run(() => ProcessIncomingDataWithBreakDetectionAsync(data));
                     
-                    // Update statistics on UI thread
-                    DispatcherQueue.TryEnqueue(() => UpdateStatistics());
+                    // Update statistics at consistent intervals
+                    if (bytesReceived % 5000 == 0) // Update every 5000 bytes consistently
+                    {
+                        DispatcherQueue.TryEnqueue(() => UpdateStatistics());
+                    }
                 }
             }
             catch (Exception ex)
@@ -1651,6 +1647,51 @@ namespace Syncomm_Serial_Monitor
             }
         }
 
+        private async void ProcessIncomingDataWithBreakDetectionAsync(string data)
+        {
+            // Process on background thread to prevent UI blocking
+            await Task.Run(() =>
+            {
+                lock (_bufferLock)
+                {
+                    // Accumulate data
+                    _serialInputBuffer.Append(data);
+                    
+                    string bufferContent = _serialInputBuffer.ToString();
+                    
+                    // Method 1: Check for semicolon-separated complete transmissions
+                    if (bufferContent.Contains(";"))
+                    {
+                        ProcessSemicolonSeparatedDataAsync(bufferContent);
+                        return;
+                    }
+                    
+                    // Method 2: Check for newline-separated complete transmissions
+                    if (bufferContent.Contains("\n") || bufferContent.Contains("\r"))
+                    {
+                        ProcessNewlineSeparatedDataAsync(bufferContent);
+                        return;
+                    }
+                    
+                    // Method 3: Check for complete 8-value transmissions by counting
+                    if (IsCompleteTransmission(bufferContent))
+                    {
+                        ProcessCompleteTransmissionAsync(bufferContent);
+                        _serialInputBuffer.Clear();
+                        return;
+                    }
+                    
+                    // Method 4: Check for timeout-based completion
+                    TimeSpan timeSinceLastData = DateTime.Now - _lastDataReceived;
+                    if (timeSinceLastData.TotalMilliseconds > DATA_TIMEOUT_MS && !string.IsNullOrEmpty(bufferContent.Trim()))
+                    {
+                        ProcessCompleteTransmissionAsync(bufferContent);
+                        _serialInputBuffer.Clear();
+                    }
+                }
+            });
+        }
+
         private bool IsCompleteTransmission(string data)
         {
             if (string.IsNullOrEmpty(data)) return false;
@@ -1690,6 +1731,26 @@ namespace Syncomm_Serial_Monitor
             _serialInputBuffer.Append(lastTransmission);
         }
 
+        private void ProcessSemicolonSeparatedDataAsync(string bufferContent)
+        {
+            string[] transmissions = bufferContent.Split(';');
+            
+            // Process all complete transmissions except the last one
+            for (int i = 0; i < transmissions.Length - 1; i++)
+            {
+                string transmission = transmissions[i].Trim();
+                if (!string.IsNullOrEmpty(transmission))
+                {
+                    ProcessCompleteTransmissionAsync(transmission);
+                }
+            }
+            
+            // Keep the last incomplete transmission in buffer
+            string lastTransmission = transmissions[transmissions.Length - 1];
+            _serialInputBuffer.Clear();
+            _serialInputBuffer.Append(lastTransmission);
+        }
+
         private void ProcessNewlineSeparatedData(string bufferContent)
         {
             string[] lines = bufferContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -1701,6 +1762,26 @@ namespace Syncomm_Serial_Monitor
                 if (!string.IsNullOrEmpty(line))
                 {
                     ProcessCompleteTransmission(line);
+                }
+            }
+            
+            // Keep the last incomplete line in buffer
+            string lastLine = lines[lines.Length - 1];
+            _serialInputBuffer.Clear();
+            _serialInputBuffer.Append(lastLine);
+        }
+
+        private void ProcessNewlineSeparatedDataAsync(string bufferContent)
+        {
+            string[] lines = bufferContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            // Process all complete lines except the last one
+            for (int i = 0; i < lines.Length - 1; i++)
+            {
+                string line = lines[i].Trim();
+                if (!string.IsNullOrEmpty(line))
+                {
+                    ProcessCompleteTransmissionAsync(line);
                 }
             }
             
@@ -2166,8 +2247,17 @@ namespace Syncomm_Serial_Monitor
 
         private void UpdateStatistics()
         {
-            BytesReceivedText.Text = $"Bytes Received: {bytesReceived:N0}";
+            // Use the optimized service for statistics
+            var totalBytesReceived = _dataManagementService?.TotalBytesReceived ?? bytesReceived;
+            var totalRowsProcessed = _dataManagementService?.TotalRowsProcessed ?? 0;
+            
+            BytesReceivedText.Text = $"Bytes Received: {totalBytesReceived:N0}";
             BytesSentText.Text = $"Bytes Sent: {bytesSent:N0}";
+            
+            // Update connection status with additional info
+            var displayCount = _dataManagementService?.GetDisplayRowCount() ?? 0;
+            var totalCount = _dataManagementService?.GetTotalRowCount() ?? 0;
+            ConnectionStatusText.Text = $"Status: {(isConnected ? "Connected" : "Disconnected")} | Display: {displayCount} | Total: {totalCount}";
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -2256,8 +2346,13 @@ namespace Syncomm_Serial_Monitor
 
         private void ClearTextButton_Click(object sender, RoutedEventArgs e)
         {
+            // Clear all data using the optimized service
+            _dataManagementService.ClearData();
+            
+            // Also clear the old buffer for backward compatibility
             dataBuffer.Clear();
-            //DataTextBox.Text = "";
+            
+            ShowInfoBar("All data cleared", InfoBarSeverity.Informational);
         }
 
         private void ShowPlotToggle_Toggled(object sender, RoutedEventArgs e)
@@ -2563,7 +2658,16 @@ namespace Syncomm_Serial_Monitor
 
         private void ExportDataButton_Click(object sender, RoutedEventArgs e)
         {
-            ExportAllDataToCSV();
+            // Use the optimized data management service for export
+            var allData = _dataManagementService.GetAllData();
+            if (allData.Count > 0)
+            {
+                ExportDataToCSV(allData);
+            }
+            else
+            {
+                ShowInfoBar("No data to export", InfoBarSeverity.Informational);
+            }
         }
 
         private void CopyDataButton_Click(object sender, RoutedEventArgs e)
@@ -2621,41 +2725,37 @@ namespace Syncomm_Serial_Monitor
             }
         }
 
-        // Export all data to CSV
-        private async void ExportAllDataToCSV()
+        // Export data to CSV using optimized service
+        private async void ExportDataToCSV(List<Models.DataGridRow> dataRows)
         {
             try
             {
-                StringBuilder csvContent;
-                int rowCount;
-                
-                lock (_allDataLock)
+                if (dataRows.Count == 0)
                 {
-                    if (_allDataRows.Count == 0)
-                    {
-                        ShowInfoBar("No data to export", InfoBarSeverity.Informational);
-                        return;
-                    }
-
-                    rowCount = _allDataRows.Count;
-                    csvContent = new StringBuilder();
-                    
-                    // Add header
-                    csvContent.AppendLine("Time," + string.Join(",", Enumerable.Range(1, _maxColumns).Select(i => $"Value{i}")));
-                    
-                    // Add data rows
-                    foreach (var row in _allDataRows)
-                    {
-                        var values = new List<string> { row.Timestamp };
-                        for (int i = 0; i < _maxColumns; i++)
-                        {
-                            values.Add(row.Values.Count > i ? row.Values[i] : "");
-                        }
-                        csvContent.AppendLine(string.Join(",", values));
-                    }
+                    ShowInfoBar("No data to export", InfoBarSeverity.Informational);
+                    return;
                 }
 
-                // Use .NET-native file saving approach with custom location option
+                var csvContent = new StringBuilder();
+                
+                // Determine max columns from data
+                int maxColumns = dataRows.Max(row => row.Values.Count);
+                
+                // Add header
+                csvContent.AppendLine("Time," + string.Join(",", Enumerable.Range(1, maxColumns).Select(i => $"Value{i}")));
+                
+                // Add data rows
+                foreach (var row in dataRows)
+                {
+                    var values = new List<string> { row.Timestamp };
+                    for (int i = 0; i < maxColumns; i++)
+                    {
+                        values.Add(row.Values.Count > i ? row.Values[i] : "");
+                    }
+                    csvContent.AppendLine(string.Join(",", values));
+                }
+
+                // Use .NET-native file saving approach
                 var fileName = $"SerialData_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
                 var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 var filePath = Path.Combine(documentsPath, fileName);
@@ -2663,8 +2763,8 @@ namespace Syncomm_Serial_Monitor
                 // Write the CSV content to file
                 await File.WriteAllTextAsync(filePath, csvContent.ToString());
                 
-                // Show enhanced message with bold text and browse option
-                var message = $"Exported {rowCount} rows to **{fileName}** in **Documents** folder";
+                // Show enhanced message
+                var message = $"Exported {dataRows.Count} rows to **{fileName}** in **Documents** folder";
                 ShowInfoBar(message, InfoBarSeverity.Success);
                 
                 // Open the Documents folder to show the file
