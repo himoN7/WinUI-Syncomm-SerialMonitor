@@ -62,12 +62,23 @@ namespace Syncomm_Serial_Monitor.Models
         public int RowLimit
         {
             get => _rowLimit;
-            set => SetProperty(ref _rowLimit, value);
+            set 
+            {
+                if (SetProperty(ref _rowLimit, value))
+                {
+                    // Update UI display when RowLimit changes
+                    UpdateUIDisplay();
+                }
+            }
         }
 
+        // UI Display Collections (limited by RowLimit)
         public ObservableCollection<DataRow> DataRows { get; set; } = new ObservableCollection<DataRow>();
         public ObservableCollection<DataGridRow> DataGridRows { get; set; } = new ObservableCollection<DataGridRow>();
-        public List<DataGridRow> AllDataRows { get; set; } = new List<DataGridRow>();
+        
+        // Complete Storage Collections (for export)
+        public List<DataRow> AllDataRows { get; set; } = new List<DataRow>();
+        public List<DataGridRow> AllDataGridRows { get; set; } = new List<DataGridRow>();
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -89,7 +100,23 @@ namespace Syncomm_Serial_Monitor.Models
             DataRows.Clear();
             DataGridRows.Clear();
             AllDataRows.Clear();
+            AllDataGridRows.Clear();
             SendText = "";
+        }
+
+        public void UpdateUIDisplay()
+        {
+            // Update DataRows UI display
+            while (DataRows.Count > RowLimit)
+            {
+                DataRows.RemoveAt(0);
+            }
+            
+            // Update DataGridRows UI display
+            while (DataGridRows.Count > RowLimit)
+            {
+                DataGridRows.RemoveAt(0);
+            }
         }
     }
 

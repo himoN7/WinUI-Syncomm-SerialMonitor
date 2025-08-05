@@ -189,16 +189,18 @@ HorizontalContentAlignment="Center"
  Content="Enable DataGrid" 
  IsChecked="True" 
  Margin="8,4"/>
-                                    <Button x:Name="ClearDataButton"
+                                <NumberBox x:Name="UpdateIntervalNumberBox" Value="100" Minimum="50" Maximum="5000" SpinButtonPlacementMode="Inline" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Height="40"
+/>
+                                <Button Height="40" x:Name="ClearDataButton"
                      Content="Clear"
                      Style="{StaticResource DefaultButtonStyle}"
                                  Click="ClearDataButton_Click"
                     />
-                                    <Button x:Name="CopyDataButton"
+                                <Button Height="40"  x:Name="CopyDataButton"
                                  Content="Copy"
                      Style="{StaticResource DefaultButtonStyle}"
                                  Click="CopyDataButton_Click"/>
-                                    <Button x:Name="ExportDataButton"
+                                <Button Height="40" x:Name="ExportDataButton"
                                  Content="Export"
                      Style="{StaticResource DefaultButtonStyle}"
                                  Click="ExportDataButton_Click"/>
@@ -446,7 +448,7 @@ HorizontalContentAlignment="Center"
 
                                         <StackPanel Spacing="8">
                                             <TextBlock Text="Update Interval (ms)" Style="{StaticResource CaptionTextBlockStyle}"/>
-                                            <NumberBox x:Name="UpdateIntervalNumberBox" Value="100" Minimum="50" Maximum="5000"/>
+                                            
                         </StackPanel>
 
                                         <StackPanel Spacing="8">

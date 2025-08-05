@@ -231,7 +231,7 @@ namespace Syncomm_Serial_Monitor.ViewModels
         {
             try
             {
-                var csvContent = _dataProcessingService.ExportToCSV(DataModel.AllDataRows);
+                var csvContent = _dataProcessingService.ExportToCSV(DataModel.AllDataGridRows);
                 await _notificationService.CopyToClipboardAsync(csvContent);
                 ShowNotification("Data copied to clipboard", "Success");
             }
@@ -245,7 +245,7 @@ namespace Syncomm_Serial_Monitor.ViewModels
         {
             try
             {
-                var fileName = await _dataProcessingService.ExportToCSVFileAsync(DataModel.AllDataRows);
+                var fileName = await _dataProcessingService.ExportToCSVFileAsync(DataModel.AllDataGridRows);
                 ShowNotification($"Data exported to {fileName}", "Success");
             }
             catch (Exception ex)
@@ -335,19 +335,16 @@ namespace Syncomm_Serial_Monitor.ViewModels
             // Update UI on UI thread using DispatcherQueue
             _dispatcherQueue.TryEnqueue(() =>
             {
+                // Add to complete storage (for export)
+                DataModel.AllDataRows.Add(dataRow);
+                DataModel.AllDataGridRows.Add(dataGridRow);
+                
+                // Add to UI display collections
                 DataModel.DataRows.Add(dataRow);
                 DataModel.DataGridRows.Add(dataGridRow);
-                DataModel.AllDataRows.Add(dataGridRow);
                 
-                // Keep only last rows based on RowLimit for performance
-                while (DataModel.DataRows.Count > DataModel.RowLimit)
-                {
-                    DataModel.DataRows.RemoveAt(0);
-                }
-                while (DataModel.DataGridRows.Count > DataModel.RowLimit)
-                {
-                    DataModel.DataGridRows.RemoveAt(0);
-                }
+                // Update UI display based on RowLimit
+                DataModel.UpdateUIDisplay();
 
                 // Parse data using the parsing service
                 _parsingService.Parse(processedData, ParsingModel.SyncToSystemClock, ParsingModel.UseExternalClock, ParsingModel.ExternalClockLabel);
@@ -415,9 +412,9 @@ namespace Syncomm_Serial_Monitor.ViewModels
                         Values = e.NumericData.Select(d => d.ToString("F2")).ToList()
                     };
                     
-                    // Add to DataModel for display
-                    DataModel.DataGridRows.Add(dataGridRow);
-                    DataModel.AllDataRows.Add(dataGridRow);
+                                         // Add to DataModel for display
+                     DataModel.DataGridRows.Add(dataGridRow);
+                     DataModel.AllDataGridRows.Add(dataGridRow);
                     
                     // Keep only last rows based on RowLimit for performance
                     while (DataModel.DataGridRows.Count > DataModel.RowLimit)
