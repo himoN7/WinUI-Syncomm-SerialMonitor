@@ -84,11 +84,25 @@ namespace Syncomm_Serial_Monitor.Services
         {
             if (string.IsNullOrEmpty(data)) return;
             
+            // Validate data format before processing
+            var validatedData = ValidateAndCleanData(data);
+            if (string.IsNullOrEmpty(validatedData)) return;
+            
             var dataRow = new DataGridRow
             {
                 Timestamp = includeTimestamp ? DateTime.Now.ToString("HH:mm:ss.fff") : "",
-                Values = ParseDataValues(data)
+                Values = ParseDataValues(validatedData)
             };
+            
+            // Validate that we have the expected number of values
+            if (dataRow.Values.Count < 8)
+            {
+                // Pad with empty values to ensure consistent column count
+                while (dataRow.Values.Count < 8)
+                {
+                    dataRow.Values.Add("");
+                }
+            }
             
             // Add to processing queue (non-blocking)
             _dataQueue.Enqueue(dataRow);
@@ -118,6 +132,44 @@ namespace Syncomm_Serial_Monitor.Services
             }
             
             return values;
+        }
+        
+        private string ValidateAndCleanData(string data)
+        {
+            if (string.IsNullOrEmpty(data)) return null;
+            
+            // Remove any control characters that might cause parsing issues
+            data = data.Replace("\r", "").Replace("\n", "").Replace("\t", " ");
+            
+            // Ensure consistent spacing
+            while (data.Contains("  "))
+            {
+                data = data.Replace("  ", " ");
+            }
+            
+            // Trim whitespace
+            data = data.Trim();
+            
+            // Validate that we have numeric data
+            var parts = data.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 8) return null; // Need at least 8 values
+            
+            // Check that all parts are numeric (except for potential timestamps)
+            for (int i = 0; i < Math.Min(parts.Length, 8); i++)
+            {
+                if (!double.TryParse(parts[i], out _) && !IsTimestamp(parts[i]))
+                {
+                    return null; // Invalid data
+                }
+            }
+            
+            return data;
+        }
+        
+        private bool IsTimestamp(string value)
+        {
+            // Check if the value looks like a timestamp (HH:MM:SS.fff format)
+            return value.Contains(":") && value.Contains(".");
         }
         
         private void StartBackgroundProcessing()

@@ -423,18 +423,38 @@ namespace Syncomm_Serial_Monitor
             _transmissionQueue.Enqueue(transmission);
         }
 
-        private void ProcessCompleteTransmissionAsync(string transmission)
+        private async void ProcessCompleteTransmissionAsync(string transmission)
         {
             if (string.IsNullOrEmpty(transmission.Trim())) return;
             
-            // Process directly using the optimized data management service
-            var processedData = ProcessAndFormatData(transmission);
-            if (!string.IsNullOrEmpty(processedData))
+            // Use semaphore to prevent race conditions with timeout
+            if (await _processingSemaphore.WaitAsync(100)) // 100ms timeout
             {
-                // Add to data management service for optimized processing
-                _dataManagementService.AddData(processedData, _timestampEnabled);
-                
-                // No need to update _processingBuffer since DataManagementService handles UI updates
+                try
+                {
+                    // Process directly using the optimized data management service
+                    var processedData = ProcessAndFormatData(transmission);
+                    if (!string.IsNullOrEmpty(processedData))
+                    {
+                        // Add to data management service for optimized processing
+                        _dataManagementService.AddData(processedData, _timestampEnabled);
+                        
+                        // No need to update _processingBuffer since DataManagementService handles UI updates
+                    }
+                }
+                finally
+                {
+                    _processingSemaphore.Release();
+                }
+            }
+            else
+            {
+                // If semaphore times out, process without blocking to prevent data loss
+                var processedData = ProcessAndFormatData(transmission);
+                if (!string.IsNullOrEmpty(processedData))
+                {
+                    _dataManagementService.AddData(processedData, _timestampEnabled);
+                }
             }
         }
 
