@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Syncomm_Serial_Monitor.Models;
 using Syncomm_Serial_Monitor.Services;
@@ -20,6 +21,7 @@ namespace Syncomm_Serial_Monitor.ViewModels
         private readonly DataProcessingService _dataProcessingService;
         private readonly NotificationService _notificationService;
         private readonly ParsingService _parsingService;
+        private readonly DispatcherQueue _dispatcherQueue;
 
         private bool _isConnected;
         private string _connectionButtonText = "Connect";
@@ -28,12 +30,13 @@ namespace Syncomm_Serial_Monitor.ViewModels
         private string _statusMessage = "";
         private string _statusSeverity = "Informational";
 
-        public SerialMonitorViewModel()
+        public SerialMonitorViewModel(DispatcherQueue? dispatcherQueue = null)
         {
             _serialPortService = new SerialPortService();
             _dataProcessingService = new DataProcessingService();
             _notificationService = new NotificationService();
             _parsingService = new ParsingService();
+            _dispatcherQueue = dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
 
             // Initialize commands
             ConnectCommand = new RelayCommand(Connect, CanConnect);
@@ -126,13 +129,28 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         private async void Connect()
         {
-            if (IsConnected)
+            try
             {
-                await Disconnect();
+                if (IsConnected)
+                {
+                    var success = await Disconnect();
+                    if (!success)
+                    {
+                        ShowNotification("Failed to disconnect", "Error");
+                    }
+                }
+                else
+                {
+                    var success = await ConnectToPort();
+                    if (!success)
+                    {
+                        ShowNotification("Failed to connect", "Error");
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                await ConnectToPort();
+                ShowNotification($"Connection operation failed: {ex.Message}", "Error");
             }
         }
 
@@ -269,7 +287,7 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         #region Private Methods
 
-        private async Task ConnectToPort()
+        private async Task<bool> ConnectToPort()
         {
             try
             {
@@ -283,22 +301,26 @@ namespace Syncomm_Serial_Monitor.ViewModels
                 };
 
                 await _serialPortService.ConnectAsync(config);
+                return true;
             }
             catch (Exception ex)
             {
                 ShowNotification($"Connection failed: {ex.Message}", "Error");
+                return false;
             }
         }
 
-        private async Task Disconnect()
+        private async Task<bool> Disconnect()
         {
             try
             {
                 await _serialPortService.DisconnectAsync();
+                return true;
             }
             catch (Exception ex)
             {
                 ShowNotification($"Disconnect error: {ex.Message}", "Error");
+                return false;
             }
         }
 
@@ -310,35 +332,36 @@ namespace Syncomm_Serial_Monitor.ViewModels
             var dataRow = _dataProcessingService.CreateDataRow(processedData, DataModel.TimestampEnabled);
             var dataGridRow = _dataProcessingService.CreateDataGridRow(processedData, DataModel.TimestampEnabled);
             
-            // Add to collections on UI thread
-            // Note: In a real implementation, you would get the DispatcherQueue from the current window
-            // For now, we'll update the UI directly since we're in the ViewModel
-            DataModel.DataRows.Add(dataRow);
-            DataModel.DataGridRows.Add(dataGridRow);
-            DataModel.AllDataRows.Add(dataGridRow);
-            
-            // Keep only last 100 rows for performance
-            while (DataModel.DataRows.Count > 100)
+            // Update UI on UI thread using DispatcherQueue
+            _dispatcherQueue.TryEnqueue(() =>
             {
-                DataModel.DataRows.RemoveAt(0);
-            }
-            while (DataModel.DataGridRows.Count > 100)
-            {
-                DataModel.DataGridRows.RemoveAt(0);
-            }
-
-            // Parse data using the parsing service
-            _parsingService.Parse(processedData, ParsingModel.SyncToSystemClock, ParsingModel.UseExternalClock, ParsingModel.ExternalClockLabel);
-
-            // Add to plot if enabled
-            if (PlotModel.PlotInitialized && DataModel.ShowPlotEnabled)
-            {
-                var numericValue = _dataProcessingService.ExtractNumericValue(processedData);
-                if (numericValue.HasValue)
+                DataModel.DataRows.Add(dataRow);
+                DataModel.DataGridRows.Add(dataGridRow);
+                DataModel.AllDataRows.Add(dataGridRow);
+                
+                // Keep only last 100 rows for performance
+                while (DataModel.DataRows.Count > 100)
                 {
-                    PlotModel.AddDataPoint(numericValue.Value, false);
+                    DataModel.DataRows.RemoveAt(0);
                 }
-            }
+                while (DataModel.DataGridRows.Count > 100)
+                {
+                    DataModel.DataGridRows.RemoveAt(0);
+                }
+
+                // Parse data using the parsing service
+                _parsingService.Parse(processedData, ParsingModel.SyncToSystemClock, ParsingModel.UseExternalClock, ParsingModel.ExternalClockLabel);
+
+                // Add to plot if enabled
+                if (PlotModel.PlotInitialized && DataModel.ShowPlotEnabled)
+                {
+                    var numericValue = _dataProcessingService.ExtractNumericValue(processedData);
+                    if (numericValue.HasValue)
+                    {
+                        PlotModel.AddDataPoint(numericValue.Value, false);
+                    }
+                }
+            });
         }
 
         private void OnErrorReceived(object sender, ErrorReceivedEventArgs e)
@@ -377,18 +400,24 @@ namespace Syncomm_Serial_Monitor.ViewModels
 
         private void OnParsingCompleted(object sender, ParsingCompletedEventArgs e)
         {
-            // Update parsing model with results
-            ParsingModel.UpdateParsedData(e.Labels, e.NumericData, e.TimeStamps);
-            
-            if (ParsingModel.HasData())
+            // Update parsing model with results on UI thread
+            _dispatcherQueue.TryEnqueue(() =>
             {
-                ShowNotification($"Parsed {ParsingModel.GetDataCount()} data points", "Success");
-            }
+                ParsingModel.UpdateParsedData(e.Labels, e.NumericData, e.TimeStamps);
+                
+                if (ParsingModel.HasData())
+                {
+                    ShowNotification($"Parsed {ParsingModel.GetDataCount()} data points", "Success");
+                }
+            });
         }
 
         private void OnParsingProgressUpdated(object sender, ProgressEventArgs e)
         {
-            ParsingModel.ParsingProgress = e.Progress;
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                ParsingModel.ParsingProgress = e.Progress;
+            });
         }
 
         #endregion

@@ -13,9 +13,8 @@ namespace Syncomm_Serial_Monitor.Views
         {
             this.InitializeComponent();
             
-            // Get the ViewModel from the parent (assuming it's passed or accessible)
-            // For now, we'll create a new one for demonstration
-            _viewModel = new SerialMonitorViewModel();
+            // Create ViewModel with proper dispatcher queue
+            _viewModel = new SerialMonitorViewModel(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
             this.DataContext = _viewModel;
         }
 
