@@ -481,7 +481,7 @@ namespace Syncomm_Serial_Monitor
             
             if (IsDataGridEnabled())
             {
-                // Throttle data grid updates to prevent laggy behavior
+                // Always update data grid when called, but throttle the frequency
                 var timeSinceLastUpdate = DateTime.Now - _lastDataGridUpdate;
                 if (timeSinceLastUpdate.TotalMilliseconds >= DATA_GRID_UPDATE_INTERVAL_MS)
                 {
@@ -1504,34 +1504,28 @@ namespace Syncomm_Serial_Monitor
 
         private async Task OptimizeForConnection()
         {
-            _connectionStartTime = DateTime.Now;
-            
-            // Pre-warm the processing pipeline for first connection
-            if (_processingTask == null || _processingTask.IsCompleted)
+            try
             {
-                StartBackgroundProcessing();
-                await Task.Delay(50); // Give background task time to start
+                // Reset data grid update timer to force immediate update
+                _lastDataGridUpdate = DateTime.MinValue;
+                
+                // Force update statistics immediately
+                DispatcherQueue.TryEnqueue(() => UpdateStatistics());
+                
+                // Populate display with existing data from storage
+                _dataManagementService?.PopulateDisplayFromStorage();
+                
+                // Force update data grid immediately
+                DispatcherQueue.TryEnqueue(() => UpdateDataGrid(""));
+                
+                // Force UI update from data management service
+                _dataManagementService?.ForceUIUpdate();
+                
+                await Task.Delay(100); // Small delay to ensure UI updates
             }
-            
-            // Pre-allocate additional buffers for first connection
-            if (_processingBuffer.Capacity < 20000)
+            catch (Exception ex)
             {
-                _processingBuffer = new StringBuilder(20000);
-                _displayBuffer = new StringBuilder(20000);
-            }
-            
-            // Warm up the UI update timer
-            if (_uiUpdateTimer == null || !_uiUpdateTimer.IsEnabled)
-            {
-                InitializeSmoothProcessing();
-            }
-            
-            // Log performance for first connection
-            if (_isFirstConnection)
-            {
-                var warmupTime = DateTime.Now - _connectionStartTime;
-                System.Diagnostics.Debug.WriteLine($"First connection warmup time: {warmupTime.TotalMilliseconds}ms");
-                _isFirstConnection = false;
+                System.Diagnostics.Debug.WriteLine($"Connection optimization error: {ex.Message}");
             }
         }
 
@@ -1555,7 +1549,7 @@ namespace Syncomm_Serial_Monitor
                 _lastDataGridUpdate = DateTime.MinValue;
                 
                 // Clear any pending data in the management service
-                _dataManagementService?.ClearData();
+                _dataManagementService?.ClearQueueAndDisplay();
                 
                 // Update UI
                 DispatcherQueue.TryEnqueue(() =>

@@ -250,6 +250,17 @@ namespace Syncomm_Serial_Monitor.Services
             Interlocked.Exchange(ref _totalRowsProcessed, 0);
         }
         
+        public void ClearQueueAndDisplay()
+        {
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                DisplayRows.Clear();
+            });
+            
+            // Clear queue but preserve stored data
+            while (_dataQueue.TryDequeue(out _)) { }
+        }
+        
         public List<DataGridRow> GetAllData()
         {
             lock (_allDataLock)
@@ -308,6 +319,35 @@ namespace Syncomm_Serial_Monitor.Services
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Force UI update error: {ex.Message}");
+                }
+            });
+        }
+        
+        public void PopulateDisplayFromStorage()
+        {
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    // Clear current display
+                    DisplayRows.Clear();
+                    
+                    // Get the last N rows from storage and populate display
+                    lock (_allDataLock)
+                    {
+                        var lastRows = _allDataRows.Skip(Math.Max(0, _allDataRows.Count - _displayRowLimit)).ToList();
+                        foreach (var row in lastRows)
+                        {
+                            if (row != null && !string.IsNullOrEmpty(row.Timestamp))
+                            {
+                                DisplayRows.Add(row);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Populate display error: {ex.Message}");
                 }
             });
         }
